@@ -5,14 +5,21 @@ use std::time::{SystemTime, UNIX_EPOCH};
 fn greet() -> String {
   let now = SystemTime::now();
   let epoch_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
+
   format!("Hello world from Rust! Current epoch: {epoch_ms}")
+}
+
+#[tauri::command]
+fn get_environment_variable(name: &str) -> String {
+  std::env::var(name).unwrap_or_else(|_| "".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
-    .invoke_handler(tauri::generate_handler![greet])
+    .plugin(tauri_plugin_http::init())
+    .invoke_handler(tauri::generate_handler![get_environment_variable, greet])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
