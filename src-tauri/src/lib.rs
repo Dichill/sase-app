@@ -267,14 +267,12 @@ struct Checklist {
 /// Initialize database with user password
 #[tauri::command]
 async fn initialize_user_database(
-  email: String,
   password: String,
 ) -> Result<serde_json::Value, String> {
-  let sanitized_email = email.replace(['@', '.', '+'], "_");
-  let db_path = format!("user_data_{}.db", sanitized_email);
+  let db_path = "sase.db";
 
   let args = OpenArgs {
-    path: db_path.clone(),
+    path: db_path.to_string(),
     password,
   };
 
@@ -285,7 +283,6 @@ async fn initialize_user_database(
 #[tauri::command]
 async fn add_listing(listing: Listing) -> Result<i64, String> {
   let pool = DB_POOL.get().ok_or("Database not initialized")?;
-
   let result = sqlx::query(
     r#"
     INSERT INTO listings (
