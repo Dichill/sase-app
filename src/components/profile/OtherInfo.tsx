@@ -72,7 +72,7 @@ const AdditionalInfo: React.FC = () => {
     setItems((prev) => [...prev, createNewItem()]);
   };
 
-  // Mock DELETE operation from db
+  // TEST: DELETE operation from db
   const deleteItem = async (id: string) => {
     console.log(`DATABASE DELETE: Deleting item with id: ${id}`);
     await invoke("delete_additional_info", { id: Number(id) });
