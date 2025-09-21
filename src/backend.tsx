@@ -1,4 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
+import { mkdir, BaseDirectory } from '@tauri-apps/plugin-fs';
 
 
-invoke('some_command');
+
+
+// Read
+
+
+// Update
+
+// Delete
+
+
+// invoke('some_command');

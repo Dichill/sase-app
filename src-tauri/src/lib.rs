@@ -276,6 +276,16 @@ struct Document {
   updated_at: Option<String>,
 }
 
+
+#[derive(Serialize, Deserialize)]
+struct IncomeSource {
+  source: String,
+  employer_name: String,
+  job_title: String,
+  employment_length: String,
+  employer_contact: String, 
+}
+
 #[derive(Serialize, Deserialize)]
 struct Checklist {
   id: Option<i64>,
@@ -348,6 +358,7 @@ pub fn run() {
       initialize_user_database,
       some_command,
       profile::add_income_source,
+      profile::get_income_sources,
       listings::add_listing,
       listings::get_listings,
       document::fetch_documents,
