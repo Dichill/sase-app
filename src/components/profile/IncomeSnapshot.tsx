@@ -25,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { invoke } from "@tauri-apps/api/core";
 
 interface IncomeSource {
   id: string;
@@ -46,22 +47,43 @@ const createEmptyIncomeSource = (): IncomeSource => ({
   isEditing: true,
 });
 
+
+
 const IncomeSnapshot: React.FC = () => {
   const [monthlyIncome, setMonthlyIncome] = useState<string>("");
-  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
+  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]); // get: set income sources from database
   const [editBuffer, setEditBuffer] = useState<
     Partial<Record<string, { source: string; employerName: string; jobTitle: string; employmentLength: string; employerContact: string }>>
   >({});
 
-  //save to database (replace all this!!)
+  // get function
+
+  // delete from database function
+
+  // save to database (replace all this!!)
+  // const saveIncomeSource = async (data: IncomeSource[]) => {
+  //   return new Promise<void>((resolve) => {
+  //     console.log("Saving income source data", data);
+  //     setTimeout(() => {
+  //       resolve();
+  //     }, 300);
+  //   });
+  // };
   const saveIncomeSource = async (data: IncomeSource[]) => {
-    return new Promise<void>((resolve) => {
-      console.log("Saving income source data", data);
-      setTimeout(() => {
-        resolve();
-      }, 300);
-    });
-  };
+    console.log("Saving income source data", data);
+    for (const src of data) {
+      await invoke("add_income_source", {
+        id: src.id,
+        source: src.source,
+        employerName: src.employerName,
+        jobTitle: src.jobTitle,
+        employmentLength: src.employmentLength,
+        employerContact: src.employerContact
+      });
+    }
+  }
+  
+  
 
   const handleChange = (
     id: string,
@@ -137,7 +159,7 @@ const IncomeSnapshot: React.FC = () => {
       return rest;
     });
   };
-
+// Frontend only component
   return (
     <div className="rounded-lg border px-4 py-6">
       <div className="flex items-center justify-between border-b pb-3">
