@@ -116,6 +116,7 @@ pub async fn get_listing_notes(listing_id: i64) -> Result<String, String> {
 } 
 
 // Set/Update Notes for specified listing
+#[tauri::command]
 pub async fn set_listing_notes(listing_id: i64, notes: String) -> Result<(), String> {
   let pool = DB_POOL.get().ok_or("Database not initialized")?;
 
