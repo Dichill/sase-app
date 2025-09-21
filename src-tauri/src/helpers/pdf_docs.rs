@@ -19,7 +19,6 @@ pub fn blobs_to_pdf(blobs: &[Vec<u8>], out: &Path) -> Result<()> {
     return Err(anyhow::anyhow!("No image blobs provided"));
   }
 
-  // Create a new PDF document using printpdf 0.8.2
   let mut pdf_doc = PdfDocument::new("Generated PDF");
   let mut warnings = Vec::<PdfWarnMsg>::new();
 
@@ -35,7 +34,20 @@ pub fn blobs_to_pdf(blobs: &[Vec<u8>], out: &Path) -> Result<()> {
     let dynamic_image = image::load_from_memory(blob)
       .map_err(|e| anyhow::anyhow!("Failed to decode image {} with image crate: {}", i, e))?;
 
-    let rgba_image = dynamic_image.to_rgba8();
+    // Resize large images to reduce PDF size (max 1920px width/height)
+    let resized_image = if dynamic_image.width() > 1920 || dynamic_image.height() > 1920 {
+      println!(
+        "Resizing large image {} from {}x{}",
+        i,
+        dynamic_image.width(),
+        dynamic_image.height()
+      );
+      dynamic_image.resize(1920, 1920, image::imageops::FilterType::Lanczos3)
+    } else {
+      dynamic_image
+    };
+
+    let rgba_image = resized_image.to_rgba8();
     let width = rgba_image.width() as usize;
     let height = rgba_image.height() as usize;
     let raw_data = rgba_image.into_raw();
@@ -56,6 +68,8 @@ pub fn blobs_to_pdf(blobs: &[Vec<u8>], out: &Path) -> Result<()> {
     let image_height_mm = (height as f32) * 0.352778;
 
     let mut ops = Vec::new();
+
+    // Calculate image scaling and positioning (centered with margins)
     let scale_x = a4_width.0 / image_width_mm;
     let scale_y = a4_height.0 / image_height_mm;
     let scale = scale_x.min(scale_y) * 0.9;
@@ -95,6 +109,7 @@ pub fn blobs_to_pdf(blobs: &[Vec<u8>], out: &Path) -> Result<()> {
 pub async fn merge_pdfs_via_sase_api(
   base_pdf_bytes: Vec<u8>,
   additional_pdf_bytes: Vec<Vec<u8>>,
+  headers: Vec<String>,
   jwt_token: &str,
 ) -> Result<Vec<u8>> {
   let api_endpoint = "https://drakoindustries.com/api/sase/pdf/merge";
@@ -115,6 +130,14 @@ pub async fn merge_pdfs_via_sase_api(
       .mime_str("application/pdf")
       .map_err(|e| anyhow::anyhow!("Failed to create additional PDF part {}: {}", i, e))?;
     form = form.part("additionalPdfs", part);
+  }
+
+  // Add headers as JSON
+  if !headers.is_empty() {
+    let headers_json = serde_json::to_string(&headers)
+      .map_err(|e| anyhow::anyhow!("Failed to serialize headers to JSON: {}", e))?;
+    form = form.text("headers", headers_json);
+    println!("Sending headers to API: {:?}", headers);
   }
   let response = client
     .post(api_endpoint)
@@ -161,28 +184,81 @@ pub async fn merge_pdfs_via_sase_api(
   Ok(merged_pdf_bytes.to_vec())
 }
 
-pub async fn merge_mixed_to_pdf_via_sase_api(
+pub async fn merge_mixed_to_pdf_via_sase_api_with_pdfs(
   first_pdf: Vec<u8>,
   additional_blobs: Vec<Vec<u8>>,
+  additional_pdfs: Vec<Vec<u8>>,
+  headers: Vec<String>,
   jwt_token: &str,
 ) -> Result<Vec<u8>> {
   use std::env;
 
-  if additional_blobs.is_empty() {
+  let temp_dir = env::temp_dir();
+  let mut pdf_files_to_merge = Vec::new();
+
+  let base_size_mb = first_pdf.len() as f64 / (1024.0 * 1024.0);
+  println!("Base PDF size: {:.2} MB", base_size_mb);
+
+  let mut total_size = first_pdf.len();
+
+  if !additional_blobs.is_empty() {
+    println!(
+      "Converting {} images to individual PDFs",
+      additional_blobs.len()
+    );
+
+    for (i, blob) in additional_blobs.iter().enumerate() {
+      let size_mb = blob.len() as f64 / (1024.0 * 1024.0);
+      println!("Image {}: {:.2} MB", i + 1, size_mb);
+      total_size += blob.len();
+
+      let temp_image_pdf = temp_dir.join(format!("temp_sase_api_image_{}.pdf", i));
+      blobs_to_pdf(&[blob.clone()], &temp_image_pdf)?;
+
+      let image_pdf_bytes = fs::read(&temp_image_pdf)
+        .map_err(|e| anyhow::anyhow!("Failed to read generated image PDF {}: {}", i, e))?;
+
+      let image_pdf_size_mb = image_pdf_bytes.len() as f64 / (1024.0 * 1024.0);
+      println!(
+        "Generated image PDF {} size: {:.2} MB",
+        i + 1,
+        image_pdf_size_mb
+      );
+
+      pdf_files_to_merge.push(image_pdf_bytes);
+      let _ = fs::remove_file(&temp_image_pdf);
+    }
+  }
+
+  let pdf_headers = headers;
+
+  for (i, pdf) in additional_pdfs.iter().enumerate() {
+    let size_mb = pdf.len() as f64 / (1024.0 * 1024.0);
+    println!("Additional PDF {}: {:.2} MB", i + 1, size_mb);
+    total_size += pdf.len();
+  }
+  pdf_files_to_merge.extend(additional_pdfs);
+
+  let total_size_mb = total_size as f64 / (1024.0 * 1024.0);
+  println!("Total size to merge: {:.2} MB", total_size_mb);
+
+  if pdf_files_to_merge.is_empty() {
     return Ok(first_pdf);
   }
 
-  let temp_dir = env::temp_dir();
-  let temp_blob_pdf = temp_dir.join("temp_sase_api_blobs.pdf");
+  if total_size_mb > 20.0 {
+    println!(
+      "⚠️  WARNING: Large file size ({:.2} MB) - API may reject request",
+      total_size_mb
+    );
+    println!("💡 Consider reducing image quality or splitting into smaller batches");
+  }
 
-  blobs_to_pdf(&additional_blobs, &temp_blob_pdf)?;
+  println!("PDF merge headers: {:?}", pdf_headers);
 
-  let image_pdf_bytes = fs::read(&temp_blob_pdf)
-    .map_err(|e| anyhow::anyhow!("Failed to read generated image PDF: {}", e))?;
-
-  let merged_bytes = merge_pdfs_via_sase_api(first_pdf, vec![image_pdf_bytes], jwt_token).await?;
-
-  let _ = fs::remove_file(&temp_blob_pdf);
+  // Use SASE API to merge all PDFs
+  let merged_bytes =
+    merge_pdfs_via_sase_api(first_pdf, pdf_files_to_merge, pdf_headers, jwt_token).await?;
 
   Ok(merged_bytes)
 }

@@ -133,7 +133,7 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         employer_name TEXT,
         job_title TEXT,
         employment_length TEXT,
-        employer_contact TEXT
+        employer_contact TEXT,
         FOREIGN KEY(profile_id) REFERENCES profile(id)
     )
     "#,

@@ -5,7 +5,6 @@
 use crate::AdditionalInfoItem;
 use crate::IncomeSource;
 use crate::MonthlyIncome;
-use crate::Profile;
 use crate::DB_POOL;
 use sqlx::Row;
 

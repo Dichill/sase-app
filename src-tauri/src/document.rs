@@ -153,16 +153,19 @@ pub async fn build_pdf_with_sase_api(
   ids_in_order: Vec<i64>,
   jwt_token: String,
 ) -> Result<Vec<u8>, String> {
-  use crate::helpers::pdf_docs::merge_mixed_to_pdf_via_sase_api;
+  use crate::helpers::pdf_docs::merge_mixed_to_pdf_via_sase_api_with_pdfs;
 
   let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
   let pool_guard = db_pool.lock().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let mut additional_blobs = Vec::new();
+  let mut additional_pdfs = Vec::new();
+  let mut image_headers = Vec::new();
+  let mut pdf_headers = Vec::new();
 
   for doc_id in &ids_in_order {
-    let row = sqlx::query("SELECT data, mime_type FROM documents WHERE id = ?")
+    let row = sqlx::query("SELECT data, mime_type, name FROM documents WHERE id = ?")
       .bind(doc_id)
       .fetch_optional(pool)
       .await
@@ -171,14 +174,34 @@ pub async fn build_pdf_with_sase_api(
     if let Some(row) = row {
       let data: Vec<u8> = row.get("data");
       let mime_type: String = row.get("mime_type");
+      let name: String = row.get("name");
 
       if mime_type.starts_with("image/") {
         additional_blobs.push(data);
+        image_headers.push(name);
+      } else if mime_type == "application/pdf" {
+        additional_pdfs.push(data);
+        pdf_headers.push(name);
       }
     }
   }
 
-  merge_mixed_to_pdf_via_sase_api(first_pdf, additional_blobs, &jwt_token)
-    .await
-    .map_err(|e| format!("Failed to merge PDFs via SASE API: {}", e))
+  let mut all_headers = image_headers;
+  all_headers.extend(pdf_headers);
+
+  println!(
+    "Collected {} total headers: {:?}",
+    all_headers.len(),
+    all_headers
+  );
+
+  merge_mixed_to_pdf_via_sase_api_with_pdfs(
+    first_pdf,
+    additional_blobs,
+    additional_pdfs,
+    all_headers,
+    &jwt_token,
+  )
+  .await
+  .map_err(|e| format!("Failed to merge PDFs via SASE API: {}", e))
 }

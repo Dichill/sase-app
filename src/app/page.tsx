@@ -236,8 +236,8 @@ export default function Home() {
                 session.access_token
             );
 
-            console.log("Combining with documents 12, 8, and 10...");
-            const documentIds = [12, 8, 10];
+            console.log("Combining with documents...");
+            const documentIds = [1, 2];
             const combinedPdfData = await buildCombinedPdfWithSaseApi(
                 apiPdfData,
                 documentIds,
@@ -297,11 +297,10 @@ export default function Home() {
                     <div className="space-y-4">
                         <div>
                             <h2 className="text-xl font-semibold">
-                                PDF Document Generator
+                                PDF TESTTTT
                             </h2>
                             <p className="text-muted-foreground text-sm mt-1">
-                                Generate and download a combined PDF document
-                                from API data and documents 12, 8, and 10.
+                                Test the PDF generation process
                             </p>
                         </div>
 
@@ -322,11 +321,10 @@ export default function Home() {
 
                         {isPdfGenerating && (
                             <div className="text-sm text-muted-foreground">
-                                <p>• Fetching PDF from API...</p>
                                 <p>
-                                    • Combining with documents 12, 8, and 10...
+                                    Generating PDF based on data from personal
+                                    info and documents (dummy data for now)
                                 </p>
-                                <p>• Preparing download...</p>
                             </div>
                         )}
                     </div>
