@@ -424,7 +424,6 @@ async fn delete_database(app_handle: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 fn get_database_info(app_handle: tauri::AppHandle) -> Result<serde_json::Value, String> {
-  use std::os::unix::fs::PermissionsExt;
   use tauri::Manager;
 
   let app_data_dir = app_handle
@@ -438,11 +437,30 @@ fn get_database_info(app_handle: tauri::AppHandle) -> Result<serde_json::Value, 
     match std::fs::metadata(&db_file_path) {
       Ok(metadata) => {
         let permissions = metadata.permissions();
+
+        #[cfg(unix)]
+        let permissions_info = {
+          use std::os::unix::fs::PermissionsExt;
+          format!("{:o}", permissions.mode())
+        };
+
+        #[cfg(windows)]
+        let permissions_info = {
+          if permissions.readonly() {
+            "readonly".to_string()
+          } else {
+            "read-write".to_string()
+          }
+        };
+
+        #[cfg(not(any(unix, windows)))]
+        let permissions_info = "unknown".to_string();
+
         Ok(serde_json::json!({
           "exists": true,
           "path": db_file_path.to_string_lossy(),
           "size": metadata.len(),
-          "permissions": format!("{:o}", permissions.mode()),
+          "permissions": permissions_info,
           "readonly": permissions.readonly(),
           "is_file": metadata.is_file()
         }))
@@ -514,7 +532,7 @@ pub fn run() {
       document::test_pdf_generation,
       document::build_pdf_with_sase_api,
       listings::get_listing_notes,
-      listings::set_listing_notes,
+      listings::set_listing_notes
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
