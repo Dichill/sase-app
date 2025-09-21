@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { invoke } from "@tauri-apps/api/core";
 
 const formSchema = z.object({
   address: z
@@ -106,11 +107,12 @@ const EditListing = () => {
     }
   }, [existingListing, form]);
 
-  const onSubmit: SubmitHandler<FormData> = (values) => {
+  const onSubmit: SubmitHandler<FormData> = async (values) => {
     // Update the listing with the form values
     console.log("Updating listing:", listingId, values);
-    // TODO: Implement actual update logic here; update listing in db
+    // TEST: Implement actual update logic here; update listing in db
     // For now, just log the values and navigate back
+    await invoke("update_listing", { id: listingId, ...values });
     alert("Listing updated successfully!");
     router.push(`/listings/${listingId}`);
   };

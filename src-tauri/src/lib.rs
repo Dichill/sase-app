@@ -525,14 +525,16 @@ pub fn run() {
       profile::delete_additional_info,
       listings::add_listing,
       listings::get_listings,
+      listings::delete_listing,
+      listings::get_listing_notes,
+      listings::set_listing_notes,
+      listings::update_listing,
       document::get_documents,
       document::add_document,
       document::read_file_as_blob,
       document::delete_document,
       document::test_pdf_generation,
       document::build_pdf_with_sase_api,
-      listings::get_listing_notes,
-      listings::set_listing_notes
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
