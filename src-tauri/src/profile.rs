@@ -40,11 +40,11 @@ pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
   )
   .fetch_all(pool)
   .await
-  .map_err(|e| format!("Failed to fetch documents: {}", e))?;
+  .map_err(|e| format!("Failed to fetch monthly incomes: {}", e))?;
 
-  let mut documents = Vec::new();
+  let mut income_source = Vec::new();
   for row in rows {
-    documents.push(IncomeSource {
+    income_source.push(IncomeSource {
       id: row.try_get("id").unwrap_or_default(),
       profile_id: row.try_get("profile_id").unwrap_or_default(),
       source: row.try_get("source").unwrap_or_default(),
@@ -55,7 +55,7 @@ pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
     });
   }
 
-  Ok(documents)
+  Ok(income_source)
 }
 
 #[tauri::command]
@@ -71,14 +71,27 @@ pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
   .await
   .map_err(|e| format!("Failed to fetch documents: {}", e))?;
 
-  let mut documents = Vec::new();
+  let mut monthly_income = Vec::new();
   for row in rows {
-    documents.push(MonthlyIncome {
+    monthly_income.push(MonthlyIncome {
       profile_id: row.try_get("profile_id").unwrap_or_default(),
       monthly_income: row.try_get("monthly_income").unwrap_or_default(),
     });
   }
 
-  Ok(documents)
+  Ok(monthly_income)
+}
+
+#[tauri::command]
+pub async fn delete_income_source(id: i64) -> Result<(), String> {
+  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+
+  sqlx::query("DELETE FROM monthly_income WHERE id = ?")
+  .bind(id)
+  .execute(pool)
+  .await
+  .map_err(|e| format!("Failed to delete entry:  {}", e))?;
+
+  Ok(())
 }
 

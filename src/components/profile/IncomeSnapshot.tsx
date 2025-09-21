@@ -91,13 +91,12 @@ const IncomeSnapshot: React.FC = () => {
     setIncomeSources((prev) => [...prev, createNewIncomeSource()]);
   };
 
-  // Mock DELETE operation; delete income source entry from db
+  // @zoph db stores income source id as an integer, but your struct builds on it being a string
+  // I just casted it in case you had some reason for it being a string
+  // Cannot test yet until saving function is fixed
   const deleteIncomeSource = async (id: string) => {
-    console.log(`DATABASE DELETE: Deleting income source with id: ${id}`);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    setIncomeSources((prev) => prev.filter((source) => source.id !== id));
-    console.log("DELETE successful.");
-  };
+      await invoke("delete_income_source", { id: parseInt(id, 10) });
+  }
 
   const saveAllIncomeSources = async (data: IncomeSource[]) => {
     console.log("Saving income source data", data);
