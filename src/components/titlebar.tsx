@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Minus, X, Maximize2, Minimize2 } from "lucide-react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+
+// Type definition for Tauri window
+interface TauriWindow {
+    minimize(): Promise<void>;
+    maximize(): Promise<void>;
+    unmaximize(): Promise<void>;
+    close(): Promise<void>;
+    isMaximized(): Promise<boolean>;
+}
 
 interface TitlebarProps {
     title?: string;
@@ -19,8 +27,26 @@ export function Titlebar({
     className = "",
 }: TitlebarProps) {
     const [isMaximized, setIsMaximized] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const appWindow = getCurrentWindow() ?? null;
+    const [appWindow, setAppWindow] = useState<TauriWindow | null>(null);
+
+    useEffect(() => {
+        const initWindow = async (): Promise<void> => {
+            try {
+                const { getCurrentWindow } = await import(
+                    "@tauri-apps/api/window"
+                );
+                const window = getCurrentWindow() as TauriWindow;
+                setAppWindow(window);
+
+                const maximized = await window.isMaximized();
+                setIsMaximized(maximized);
+            } catch (error) {
+                console.warn("Tauri window API not available:", error);
+            }
+        };
+
+        void initWindow();
+    }, []);
 
     return (
         <div
@@ -57,7 +83,12 @@ export function Titlebar({
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 hover:bg-muted/50 rounded-sm"
-                            onClick={() => appWindow.minimize()}
+                            onClick={() => {
+                                if (appWindow) {
+                                    void appWindow.minimize();
+                                }
+                            }}
+                            disabled={!appWindow}
                         >
                             <Minus className="h-3 w-3" />
                             <span className="sr-only">Minimize window</span>
@@ -67,15 +98,20 @@ export function Titlebar({
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 hover:bg-muted/50 rounded-sm"
-                            onClick={async () => {
-                                if (isMaximized) {
-                                    await appWindow.unmaximize();
-                                    setIsMaximized(false);
-                                } else {
-                                    await appWindow.maximize();
-                                    setIsMaximized(true);
-                                }
+                            onClick={() => {
+                                if (!appWindow) return;
+
+                                void (async (): Promise<void> => {
+                                    if (isMaximized) {
+                                        await appWindow.unmaximize();
+                                        setIsMaximized(false);
+                                    } else {
+                                        await appWindow.maximize();
+                                        setIsMaximized(true);
+                                    }
+                                })();
                             }}
+                            disabled={!appWindow}
                         >
                             {isMaximized ? (
                                 <Minimize2 className="h-3 w-3" />
@@ -94,7 +130,12 @@ export function Titlebar({
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 hover:bg-red-500 hover:text-white rounded-sm ml-1 transition-colors duration-150"
-                            onClick={() => appWindow.close()}
+                            onClick={() => {
+                                if (appWindow) {
+                                    void appWindow.close();
+                                }
+                            }}
+                            disabled={!appWindow}
                         >
                             <X className="h-3 w-3" />
                             <span className="sr-only">Close window</span>

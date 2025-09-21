@@ -67,6 +67,14 @@ const IncomeSnapshot: React.FC = () => {
     );
   };
 
+  // // update function
+  // const getIncomeSource = async (id: string) => {
+  //   const source: IncomeSource = await invoke("get_income_source", { id });
+  //   setIncomeSources((prev) =>
+  //     prev.map((src) => (src.id === id ? source : src))
+  //   );
+  // }
+
   const handleChange = (
     id: string,
     field: keyof IncomeSource,

@@ -30,6 +30,7 @@ libsqlite3-sys = { version = "=0.30.1", default-features = false, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
 tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 [target."cfg(target_os = \"macos\")".dependencies]
 cocoa = "0.26"
 
