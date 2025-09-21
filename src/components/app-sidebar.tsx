@@ -1,33 +1,18 @@
 import * as React from "react";
-<<<<<<< HEAD
-import { ChevronRight, File, Folder, Settings, LogOut } from "lucide-react";
+import { Settings, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
-=======
-import { LogOut } from "lucide-react";
->>>>>>> 3261ac5e606de1d8353f5ff9a10eb74c4b21fbb4
 
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarRail,
-  SidebarSeparator,
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarRail,
 } from "@/components/ui/sidebar";
 
 import { navbar as data } from "@/data/navbar";
