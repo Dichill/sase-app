@@ -1,9 +1,11 @@
+mod listings;
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod profile;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
-use sqlx::{Row, SqlitePool};
+use sqlx::SqlitePool;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::OnceCell;
@@ -50,12 +52,15 @@ async fn open_db_with_password(args: OpenArgs) -> Result<serde_json::Value, Stri
     .await
     .map_err(|e| format!("cipher_version check failed: {}", e))?;
 
+  println!("Creating database tables...");
   create_tables(&pool)
     .await
     .map_err(|e| format!("Failed to create tables: {}", e))?;
 
+  println!("Setting DB_POOL...");
   let _ = DB_POOL.set(pool);
 
+  println!("Database initialization successful!");
   Ok(serde_json::json!({ "success": true, "cipher_version": check }))
 }
 
@@ -284,112 +289,29 @@ struct Checklist {
 /// Initialize database with user password
 #[tauri::command]
 async fn initialize_user_database(
+  app_handle: tauri::AppHandle,
   password: String,
 ) -> Result<serde_json::Value, String> {
-  let db_path = "sase.db";
+  use tauri::Manager;
+
+  let app_data_dir = app_handle
+    .path()
+    .app_data_dir()
+    .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+  std::fs::create_dir_all(&app_data_dir)
+    .map_err(|e| format!("Failed to create app data directory: {}", e))?;
+
+  let db_path = app_data_dir.join("sase.db");
+
+  println!("Database path: {:?}", db_path);
 
   let args = OpenArgs {
-    path: db_path.to_string(),
+    path: db_path.to_string_lossy().to_string(),
     password,
   };
 
   open_db_with_password(args).await
-}
-
-/// Add a new listing
-#[tauri::command]
-async fn add_listing(listing: Listing) -> Result<i64, String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let result = sqlx::query(
-    r#"
-    INSERT INTO listings (
-      address, contact_email, contact_phone, contact_other, source_link, price_rent,
-      housing_type, lease_type, upfront_fees, utilities, credit_score_min, minimum_income,
-      references_required, bedrooms, bathrooms, square_footage, layout_description,
-      amenities, pet_policy, furnishing, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    "#,
-  )
-  .bind(&listing.address)
-  .bind(&listing.contact_email)
-  .bind(&listing.contact_phone)
-  .bind(&listing.contact_other)
-  .bind(&listing.source_link)
-  .bind(listing.price_rent)
-  .bind(&listing.housing_type)
-  .bind(&listing.lease_type)
-  .bind(listing.upfront_fees)
-  .bind(&listing.utilities)
-  .bind(listing.credit_score_min)
-  .bind(listing.minimum_income)
-  .bind(listing.references_required)
-  .bind(listing.bedrooms)
-  .bind(listing.bathrooms)
-  .bind(listing.square_footage)
-  .bind(&listing.layout_description)
-  .bind(&listing.amenities)
-  .bind(&listing.pet_policy)
-  .bind(&listing.furnishing)
-  .bind(&listing.notes)
-  .execute(pool)
-  .await
-  .map_err(|e| format!("Failed to insert listing: {}", e))?;
-
-  Ok(result.last_insert_rowid())
-}
-
-/// Get all listings
-#[tauri::command]
-async fn get_listings() -> Result<Vec<Listing>, String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
-
-  let rows = sqlx::query(
-    r#"
-    SELECT 
-      id, address, contact_email, contact_phone, contact_other, source_link, 
-      price_rent, housing_type, lease_type, upfront_fees, utilities, 
-      credit_score_min, minimum_income, references_required, bedrooms, 
-      bathrooms, square_footage, layout_description, amenities, pet_policy, 
-      furnishing, notes, created_at, updated_at
-    FROM listings 
-    ORDER BY created_at DESC
-    "#,
-  )
-  .fetch_all(pool)
-  .await
-  .map_err(|e| format!("Failed to fetch listings: {}", e))?;
-
-  let mut listings = Vec::new();
-  for row in rows {
-    listings.push(Listing {
-      id: row.try_get("id").ok(),
-      address: row.try_get("address").unwrap_or_default(),
-      contact_email: row.try_get("contact_email").ok(),
-      contact_phone: row.try_get("contact_phone").ok(),
-      contact_other: row.try_get("contact_other").ok(),
-      source_link: row.try_get("source_link").unwrap_or_default(),
-      price_rent: row.try_get("price_rent").unwrap_or(0.0),
-      housing_type: row.try_get("housing_type").ok(),
-      lease_type: row.try_get("lease_type").ok(),
-      upfront_fees: row.try_get("upfront_fees").ok(),
-      utilities: row.try_get("utilities").ok(),
-      credit_score_min: row.try_get("credit_score_min").ok(),
-      minimum_income: row.try_get("minimum_income").ok(),
-      references_required: row.try_get("references_required").ok(),
-      bedrooms: row.try_get("bedrooms").ok(),
-      bathrooms: row.try_get("bathrooms").ok(),
-      square_footage: row.try_get("square_footage").ok(),
-      layout_description: row.try_get("layout_description").ok(),
-      amenities: row.try_get("amenities").ok(),
-      pet_policy: row.try_get("pet_policy").ok(),
-      furnishing: row.try_get("furnishing").ok(),
-      notes: row.try_get("notes").ok(),
-      created_at: row.try_get("created_at").ok(),
-      updated_at: row.try_get("updated_at").ok(),
-    });
-  }
-
-  Ok(listings)
 }
 
 #[tauri::command]
@@ -415,8 +337,8 @@ pub fn run() {
       greet,
       open_db_with_password,
       initialize_user_database,
-      add_listing,
-      get_listings
+      listings::add_listing,
+      listings::get_listings
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

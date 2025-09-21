@@ -1,0 +1,3 @@
+// Public and anon keys can be found in your Supabase project settings, under API. These keys are safe to share publicly.
+export const SUPABASE_URL = "https://icpfytabengrwydodbfr.supabase.co"
+export const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljcGZ5dGFiZW5ncnd5ZG9kYmZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMzI1NDEsImV4cCI6MjA3MzkwODU0MX0.WamRUZvUD4e7CHMftsy1lVfdLkfdVKoxTentv6JCWdM"
