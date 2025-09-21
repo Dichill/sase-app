@@ -75,7 +75,7 @@ const AdditionalInfo: React.FC = () => {
   // Mock DELETE operation from db
   const deleteItem = async (id: string) => {
     console.log(`DATABASE DELETE: Deleting item with id: ${id}`);
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await invoke("delete_additional_info", { id: Number(id) });
     setItems((prev) => prev.filter((item) => item.id !== id));
     console.log("DELETE successful.");
   };

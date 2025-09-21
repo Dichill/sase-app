@@ -239,6 +239,19 @@ pub async fn set_additional_info(id: Option<i64>, info: AdditionalInfoItem) -> R
   Ok(())
 }
 
+#[tauri::command]
+pub async fn delete_additional_info(id: i64) -> Result<(), String> {
+  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+
+  sqlx::query("DELETE FROM additional_info WHERE id = ?")
+  .bind(id)
+  .execute(pool)
+  .await
+  .map_err(|e| format!("Failed to delete entry:  {}", e))?;
+
+  Ok(())
+}
+
 // End Additional Info
 
 
