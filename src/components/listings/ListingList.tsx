@@ -7,6 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 const listings = listingData;
 
 const ListingList = () => {
+    //GET /listings (PLS JUSTIN U GOT ME RIGHT?!) get listings from db, return array of listings
   //GET /listings (PLS JUSTIN U GOT ME RIGHT?!) get listings from db, return array of listings
 
   let fetchListings = async () => {

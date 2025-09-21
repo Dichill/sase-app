@@ -2,13 +2,11 @@
 
 // Import get_db_pool from the correct module if it's defined elsewhere
 // Adjust the path as necessary
+use crate::AdditionalInfoItem;
 use crate::IncomeSource;
 use crate::MonthlyIncome;
-use crate::Profile;
-use crate::AdditionalInfoItem;
 use crate::DB_POOL;
 use sqlx::Row;
-
 
 // Income Sources
 #[tauri::command]
@@ -19,7 +17,9 @@ pub async fn add_income_source(
   employment_length: String,
   employer_contact: String,
 ) -> Result<(), String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   sqlx::query("INSERT INTO income_sources (source, employer_name, job_title, employment_length, employer_contact) VALUES (?, ?, ?, ?, ?)")
         .bind(source)
         .bind(employer_name)
@@ -32,10 +32,11 @@ pub async fn add_income_source(
   Ok(())
 }
 
-
 #[tauri::command]
 pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let rows = sqlx::query(
     r#"
         SELECT *
@@ -64,13 +65,15 @@ pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
 
 #[tauri::command]
 pub async fn delete_income_source(id: i64) -> Result<(), String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   sqlx::query("DELETE FROM monthly_income WHERE id = ?")
-  .bind(id)
-  .execute(pool)
-  .await
-  .map_err(|e| format!("Failed to delete entry:  {}", e))?;
+    .bind(id)
+    .execute(pool)
+    .await
+    .map_err(|e| format!("Failed to delete entry:  {}", e))?;
 
   Ok(())
 }
@@ -79,7 +82,9 @@ pub async fn delete_income_source(id: i64) -> Result<(), String> {
 // Monthly Income
 #[tauri::command]
 pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let rows = sqlx::query(
     r#"
         SELECT *
@@ -102,8 +107,10 @@ pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
 }
 
 #[tauri::command]
-pub async fn set_monthly_income(income: f64) -> Result<(), String> { // TODO: why float 64?
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+pub async fn set_monthly_income(income: f64) -> Result<(), String> {
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   sqlx::query("UPDATE monthly_income SET monthly_income = ? WHERE profile_id = 1")
     .bind(income)
@@ -118,7 +125,9 @@ pub async fn set_monthly_income(income: f64) -> Result<(), String> { // TODO: wh
 // User Profile
 #[tauri::command]
 pub async fn get_user_profile() -> Result<Vec<String>, String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let rows = sqlx::query(
     r#"
         SELECT *
@@ -163,7 +172,9 @@ pub async fn set_user_profile(
   job_title: String,
   annual_income: f64,
 ) -> Result<(), String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   sqlx::query("UPDATE user_profile SET name = ?, email = ?, phone = ?, address = ?, date_of_birth = ?, ssn = ?, marital_status = ?, dependents = ?, employment_status = ?, employer_name = ?, job_title = ?, annual_income = ? WHERE profile_id = 1")
         .bind(name)
         .bind(email)
@@ -188,7 +199,9 @@ pub async fn set_user_profile(
 // Additional Info
 #[tauri::command]
 pub async fn get_additional_info() -> Result<Vec<AdditionalInfoItem>, String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let rows = sqlx::query(
     r#"
         SELECT *
@@ -215,7 +228,9 @@ pub async fn get_additional_info() -> Result<Vec<AdditionalInfoItem>, String> {
 //UPSERT
 #[tauri::command]
 pub async fn set_additional_info(id: Option<i64>, info: AdditionalInfoItem) -> Result<(), String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   if let Some(id) = id {
     // Update existing entry
     sqlx::query("UPDATE additional_info SET title = ?, description = ?, icon = ? WHERE id = ?")
@@ -241,23 +256,17 @@ pub async fn set_additional_info(id: Option<i64>, info: AdditionalInfoItem) -> R
 
 #[tauri::command]
 pub async fn delete_additional_info(id: i64) -> Result<(), String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   sqlx::query("DELETE FROM additional_info WHERE id = ?")
-  .bind(id)
-  .execute(pool)
-  .await
-  .map_err(|e| format!("Failed to delete entry:  {}", e))?;
+    .bind(id)
+    .execute(pool)
+    .await
+    .map_err(|e| format!("Failed to delete entry:  {}", e))?;
 
   Ok(())
 }
 
 // End Additional Info
-
-
-
-
-
-
-
-

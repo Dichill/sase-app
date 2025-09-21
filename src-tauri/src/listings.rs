@@ -6,7 +6,9 @@ use sqlx::Row;
 #[tauri::command]
 pub async fn add_listing(listing: Listing) -> Result<i64, String> {
   println!("add_listing called with address: {}", listing.address);
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let result = sqlx::query(
     r#"
     INSERT INTO listings (
@@ -49,7 +51,9 @@ pub async fn add_listing(listing: Listing) -> Result<i64, String> {
 #[tauri::command]
 pub async fn get_listings() -> Result<Vec<Listing>, String> {
   println!("get_listings called");
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let rows = sqlx::query(
     r#"
@@ -103,7 +107,9 @@ pub async fn get_listings() -> Result<Vec<Listing>, String> {
 // Get Notes for specified listing
 #[tauri::command]
 pub async fn get_listing_notes(listing_id: i64) -> Result<String, String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let row = sqlx::query("SELECT notes FROM listings WHERE id = ?")
     .bind(listing_id)
@@ -113,12 +119,14 @@ pub async fn get_listing_notes(listing_id: i64) -> Result<String, String> {
 
   let notes: String = row.try_get("notes").unwrap_or_default();
   Ok(notes)
-} 
+}
 
 // Set/Update Notes for specified listing
 #[tauri::command]
 pub async fn set_listing_notes(listing_id: i64, notes: String) -> Result<(), String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let result = sqlx::query("UPDATE listings SET notes = ? WHERE id = ?")
     .bind(&notes)
@@ -127,9 +135,9 @@ pub async fn set_listing_notes(listing_id: i64, notes: String) -> Result<(), Str
     .await
     .map_err(|e| format!("Failed to update notes: {}", e))?;
 
-    if result.rows_affected() == 0 {
-        return Err(format!("No listing found with id {}", listing_id));
-    }
+  if result.rows_affected() == 0 {
+    return Err(format!("No listing found with id {}", listing_id));
+  }
 
   Ok(())
 }
