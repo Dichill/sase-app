@@ -1,7 +1,8 @@
+mod document;
 mod listings;
+mod profile;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-mod profile;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
@@ -330,6 +331,7 @@ fn get_environment_variable(name: &str) -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_opener::init())
     .plugin(tauri_plugin_http::init())
     .invoke_handler(tauri::generate_handler![
@@ -337,8 +339,11 @@ pub fn run() {
       greet,
       open_db_with_password,
       initialize_user_database,
+      profile::add_income_source,
       listings::add_listing,
-      listings::get_listings
+      listings::get_listings,
+      document::fetch_documents,
+      document::add_document
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

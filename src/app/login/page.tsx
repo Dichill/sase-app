@@ -3,6 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -151,104 +162,88 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="max-w-md w-full space-y-8">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader className="space-y-1">
+                    <CardTitle className="text-2xl font-bold text-center">
                         Sign in to your account
-                    </h2>
-                </div>
-                <form
-                    className="mt-8 space-y-6"
-                    onSubmit={(e) => {
-                        void handleLogin(e);
-                    }}
-                >
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor="email" className="sr-only">
-                                Email address
-                            </label>
-                            <input
+                    </CardTitle>
+                    <CardDescription className="text-center">
+                        Enter your email and password to access your account
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(e) => {
+                            void handleLogin(e);
+                        }}
+                    >
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email address</Label>
+                            <Input
                                 id="email"
                                 name="email"
                                 type="email"
                                 autoComplete="email"
                                 required
-                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Email address"
+                                placeholder="Enter your email"
                                 value={email}
                                 onChange={(e) => {
                                     setEmail(e.target.value);
                                 }}
                             />
                         </div>
-                        <div>
-                            <label htmlFor="password" className="sr-only">
-                                Password
-                            </label>
-                            <input
+                        <div className="space-y-2">
+                            <Label htmlFor="password">Password</Label>
+                            <Input
                                 id="password"
                                 name="password"
                                 type="password"
                                 autoComplete="current-password"
                                 required
-                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Password"
+                                placeholder="Enter your password"
                                 value={password}
                                 onChange={(e) => {
                                     setPassword(e.target.value);
                                 }}
                             />
                         </div>
-                    </div>
 
-                    <div className="flex items-center">
-                        <input
-                            id="remember-me"
-                            name="remember-me"
-                            type="checkbox"
-                            checked={rememberMe}
-                            onChange={(e) => {
-                                setRememberMe(e.target.checked);
-                            }}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        />
-                        <label
-                            htmlFor="remember-me"
-                            className="ml-2 block text-sm text-gray-900"
-                        >
-                            Remember me (stay logged in)
-                        </label>
-                    </div>
-
-                    {error && (
-                        <div className="text-red-600 text-sm text-center">
-                            {error}
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="remember-me"
+                                checked={rememberMe}
+                                onCheckedChange={(checked) => {
+                                    setRememberMe(checked === true);
+                                }}
+                            />
+                            <Label
+                                htmlFor="remember-me"
+                                className="text-sm font-normal"
+                            >
+                                Remember me (stay logged in)
+                            </Label>
                         </div>
-                    )}
 
-                    <div className="flex space-x-4">
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                        >
-                            {isLoading ? "Signing in..." : "Sign in"}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                void handleSignup(e);
-                            }}
-                            disabled={isLoading}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                        >
-                            {isLoading ? "Signing up..." : "Sign up"}
-                        </button>
-                    </div>
-                </form>
-            </div>
+                        {error && (
+                            <div className="text-destructive text-sm text-center p-2 bg-destructive/10 rounded-md">
+                                {error}
+                            </div>
+                        )}
+
+                        <div className="flex space-x-2">
+                            <Button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full cursor-pointer"
+                            >
+                                {isLoading ? "Signing in..." : "Sign in"}
+                            </Button>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 }

@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { DatabaseInitializer } from "@/components/DatabaseInitializer";
 import { ConditionalLayout } from "../components/ConditionalLayout";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -19,13 +20,20 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
-                <DatabaseInitializer>
-                    <ConditionalLayout>{children}</ConditionalLayout>
-                </DatabaseInitializer>
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    <DatabaseInitializer>
+                        <ConditionalLayout>{children}</ConditionalLayout>
+                    </DatabaseInitializer>
+                </ThemeProvider>
             </body>
         </html>
     );

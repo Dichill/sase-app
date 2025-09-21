@@ -5,7 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import Image from "next/image";
 import { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { RoundedButton } from "@/components/RoundedButton";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import { addListing, getListings, Listing } from "@/utils/database";
 import { useDatabaseContextSafe } from "@/components/DatabaseInitializer";
@@ -289,10 +289,14 @@ export default function Home() {
                 />
 
                 <div className="flex flex-col gap-2 items-start">
-                    <RoundedButton
+                    <Button
                         onClick={greet}
-                        title='Call "greet" from Rust'
-                    />
+                        variant="outline"
+                        size="lg"
+                        className="rounded-xl"
+                    >
+                        Call &quot;greet&quot; from Rust
+                    </Button>
                     <p className="break-words w-md">
                         {greeted ??
                             "Click the button to call the Rust function"}
