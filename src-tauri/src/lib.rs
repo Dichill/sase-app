@@ -281,14 +281,13 @@ struct Document {
   updated_at: Option<String>,
 }
 
-
 #[derive(Serialize, Deserialize)]
 struct IncomeSource {
   source: String,
   employer_name: String,
   job_title: String,
   employment_length: String,
-  employer_contact: String, 
+  employer_contact: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -459,7 +458,8 @@ pub fn run() {
       document::add_document,
       document::read_file_as_blob,
       document::delete_document,
-      document::build_pdf_with_first,
+      document::test_pdf_generation,
+      document::build_pdf_with_sase_api,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

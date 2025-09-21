@@ -1,7 +1,5 @@
-use crate::helpers::pdf_docs::merge_mixed_to_pdf;
 use crate::Document;
 use crate::DB_POOL;
-use lopdf::Document as LoDocument;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::fs;
@@ -102,49 +100,6 @@ pub async fn delete_document(document_id: i64) -> Result<(), String> {
   Ok(())
 }
 
-#[tauri::command]
-pub async fn build_pdf_with_first(
-  first_pdf: Vec<u8>,
-  ids_in_order: Vec<i64>,
-) -> Result<Vec<u8>, String> {
-  // Validate the first PDF
-  LoDocument::load_mem(&first_pdf).map_err(|e| format!("First PDF is invalid: {e}"))?;
-
-  // Pull blobs from DB in the CALLER’S order
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
-  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
-
-  let mut sources: Vec<(String, Vec<u8>)> = Vec::with_capacity(ids_in_order.len() + 1);
-
-  // First PDF goes first
-  sources.push(("application/pdf".to_string(), first_pdf));
-
-  // Then append the selected documents (images become single-page PDFs later)
-  for id in ids_in_order {
-    let row = sqlx::query(r#"SELECT mime_type, data FROM documents WHERE id = ? LIMIT 1"#)
-      .bind(id)
-      .fetch_optional(pool)
-      .await
-      .map_err(|e| format!("DB read failed for id {id}: {e}"))?;
-
-    let Some(row) = row else {
-      return Err(format!("Document not found: {id}"));
-    };
-
-    let mime: Option<String> = row.try_get("mime_type").ok();
-    let data: Option<Vec<u8>> = row.try_get("data").ok();
-
-    let mime = mime.ok_or_else(|| format!("Missing mime_type for id {id}"))?;
-    let data = data.ok_or_else(|| format!("Missing data blob for id {id}"))?;
-
-    sources.push((mime, data));
-  }
-
-  // Merge (images → single-page PDFs, PDFs as-is)
-  merge_mixed_to_pdf(sources).map_err(|e| format!("Failed to build final PDF: {e:#}"))
-}
-
 fn get_mime_type(file_path: &str) -> String {
   let extension = file_path.split('.').last().unwrap_or("").to_lowercase();
 
@@ -177,4 +132,53 @@ fn get_mime_type(file_path: &str) -> String {
     }
     _ => "application/octet-stream".to_string(),
   }
+}
+
+#[tauri::command]
+pub async fn test_pdf_generation() -> Result<String, String> {
+  use crate::helpers::pdf_docs::create_test_pdf;
+  use std::env;
+
+  let temp_dir = env::temp_dir();
+  let test_pdf_path = temp_dir.join("test_output.pdf");
+
+  create_test_pdf(&test_pdf_path).map_err(|e| format!("Failed to create test PDF: {}", e))?;
+
+  Ok(format!("Test PDF created at: {}", test_pdf_path.display()))
+}
+
+#[tauri::command]
+pub async fn build_pdf_with_sase_api(
+  first_pdf: Vec<u8>,
+  ids_in_order: Vec<i64>,
+  jwt_token: String,
+) -> Result<Vec<u8>, String> {
+  use crate::helpers::pdf_docs::merge_mixed_to_pdf_via_sase_api;
+
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
+
+  let mut additional_blobs = Vec::new();
+
+  for doc_id in &ids_in_order {
+    let row = sqlx::query("SELECT data, mime_type FROM documents WHERE id = ?")
+      .bind(doc_id)
+      .fetch_optional(pool)
+      .await
+      .map_err(|e| format!("Database error: {}", e))?;
+
+    if let Some(row) = row {
+      let data: Vec<u8> = row.get("data");
+      let mime_type: String = row.get("mime_type");
+
+      if mime_type.starts_with("image/") {
+        additional_blobs.push(data);
+      }
+    }
+  }
+
+  merge_mixed_to_pdf_via_sase_api(first_pdf, additional_blobs, &jwt_token)
+    .await
+    .map_err(|e| format!("Failed to merge PDFs via SASE API: {}", e))
 }

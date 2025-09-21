@@ -10,6 +10,12 @@
     "opener:default",
     "dialog:default",
     "http:default",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        "https://drakoindustries.com/**"
+      ]
+    },
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",
     "core:window:allow-maximize",

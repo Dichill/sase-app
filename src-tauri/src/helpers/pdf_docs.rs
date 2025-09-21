@@ -1,272 +1,208 @@
-use anyhow::{anyhow, Result};
-use lopdf::{dictionary, Document};
+use anyhow::Result;
+use std::fs;
+use std::path::Path;
 
-/// Converts an image blob to a single-page A4 PDF with 15mm margins
-///
-/// # Arguments
-/// * `image_data` - Raw image bytes
-///
-/// # Returns
-/// * `Result<Vec<u8>>` - PDF bytes or error
-///
-/// # Details
-/// - Creates A4 page (210×297 mm) with 15mm margins
-/// - Scales image proportionally to fit within content area
-/// - Centers the image on the page
-///
-/// Note: This is a simplified implementation that creates a basic PDF structure.
-/// For production use, consider using a more robust PDF creation library.
-pub fn image_to_single_page_pdf_bytes(image_data: &[u8]) -> Result<Vec<u8>> {
-  // Decode the image using the image crate
-  let img =
-    ::image::load_from_memory(image_data).map_err(|e| anyhow!("Failed to decode image: {}", e))?;
+// Import symbols from our Symbol Plan
+use printpdf::{
+  deserialize::PdfWarnMsg,
+  image::{RawImage, RawImageData, RawImageFormat},
+  ops::{Op, PdfPage},
+  serialize::PdfSaveOptions,
+  units::Mm,
+  xobject::XObjectTransform,
+  PdfDocument,
+};
 
-  // A4 dimensions in points (1 mm = 2.834645669 points)
-  const A4_WIDTH_PT: f64 = 595.276; // 210 mm
-  const A4_HEIGHT_PT: f64 = 841.890; // 297 mm
-  const MARGIN_PT: f64 = 42.520; // 15 mm
-
-  // Content area after margins
-  let content_width_pt = A4_WIDTH_PT - (2.0 * MARGIN_PT);
-  let content_height_pt = A4_HEIGHT_PT - (2.0 * MARGIN_PT);
-
-  // Get image dimensions
-  let img_width = img.width() as f64;
-  let img_height = img.height() as f64;
-
-  // Calculate scaling to fit within content area while maintaining aspect ratio
-  let scale_x = content_width_pt / img_width;
-  let scale_y = content_height_pt / img_height;
-  let scale = scale_x.min(scale_y); // Use smaller scale to fit both dimensions
-
-  // Calculate final image dimensions
-  let final_width = img_width * scale;
-  let final_height = img_height * scale;
-
-  // Calculate centering offsets
-  let x_offset = MARGIN_PT + (content_width_pt - final_width) / 2.0;
-  let y_offset = MARGIN_PT + (content_height_pt - final_height) / 2.0;
-
-  // Convert image to JPEG bytes for embedding in PDF
-  let mut jpeg_bytes = Vec::new();
-  let rgb_img = img.to_rgb8();
-
-  // Use image crate to encode as JPEG
-  let mut cursor = std::io::Cursor::new(&mut jpeg_bytes);
-  rgb_img
-    .write_to(&mut cursor, ::image::ImageFormat::Jpeg)
-    .map_err(|e| anyhow!("Failed to encode image as JPEG: {}", e))?;
-
-  // Create a basic PDF structure using lopdf
-  let mut doc = Document::with_version("1.5");
-
-  // Create image XObject
-  let image_dict = dictionary! {
-      "Type" => "XObject",
-      "Subtype" => "Image",
-      "Width" => img.width() as i64,
-      "Height" => img.height() as i64,
-      "ColorSpace" => "DeviceRGB",
-      "BitsPerComponent" => 8_i64,
-      "Filter" => "DCTDecode",
-      "Length" => jpeg_bytes.len() as i64,
-  };
-
-  let image_stream = lopdf::Stream::new(image_dict, jpeg_bytes);
-  let image_id = doc.add_object(lopdf::Object::Stream(image_stream));
-
-  // Create resource dictionary
-  let resources_dict = dictionary! {
-      "XObject" => dictionary! {
-          "Im1" => lopdf::Object::Reference(image_id),
-      },
-  };
-  let resources_id = doc.add_object(lopdf::Object::Dictionary(resources_dict));
-
-  // Create content stream that draws the image
-  let content_stream = format!(
-    "q\n{} 0 0 {} {} {} cm\n/Im1 Do\nQ\n",
-    final_width, final_height, x_offset, y_offset
-  );
-
-  let content_dict = dictionary! {
-      "Length" => content_stream.len() as i64,
-  };
-  let content_stream_obj = lopdf::Stream::new(content_dict, content_stream.into_bytes());
-  let content_id = doc.add_object(lopdf::Object::Stream(content_stream_obj));
-
-  // Create page dictionary
-  let page_dict = dictionary! {
-      "Type" => "Page",
-      "MediaBox" => vec![0.into(), 0.into(), A4_WIDTH_PT.into(), A4_HEIGHT_PT.into()],
-      "Resources" => lopdf::Object::Reference(resources_id),
-      "Contents" => lopdf::Object::Reference(content_id),
-  };
-  let page_id = doc.add_object(lopdf::Object::Dictionary(page_dict));
-
-  // Create pages dictionary
-  let pages_dict = dictionary! {
-      "Type" => "Pages",
-      "Count" => 1_i64,
-      "Kids" => vec![lopdf::Object::Reference(page_id)],
-  };
-  let pages_id = doc.add_object(lopdf::Object::Dictionary(pages_dict));
-
-  // Set parent reference for the page
-  if let Ok(lopdf::Object::Dictionary(ref mut page_dict)) = doc.get_object_mut(page_id) {
-    page_dict.set("Parent", lopdf::Object::Reference(pages_id));
+/// Convert image blobs to a multi-page PDF, one image per page
+pub fn blobs_to_pdf(blobs: &[Vec<u8>], out: &Path) -> Result<()> {
+  if blobs.is_empty() {
+    return Err(anyhow::anyhow!("No image blobs provided"));
   }
 
-  // Create catalog
-  let catalog_dict = dictionary! {
-      "Type" => "Catalog",
-      "Pages" => lopdf::Object::Reference(pages_id),
-  };
-  let catalog_id = doc.add_object(lopdf::Object::Dictionary(catalog_dict));
+  // Create a new PDF document using printpdf 0.8.2
+  let mut pdf_doc = PdfDocument::new("Generated PDF");
+  let mut warnings = Vec::<PdfWarnMsg>::new();
 
-  // Set root reference in trailer
-  doc
-    .trailer
-    .set("Root", lopdf::Object::Reference(catalog_id));
+  for (i, blob) in blobs.iter().enumerate() {
+    if blob.len() > 50 * 1024 * 1024 {
+      return Err(anyhow::anyhow!(
+        "Image {} is too large: {} bytes (max 50MB)",
+        i,
+        blob.len()
+      ));
+    }
 
-  // Save PDF to bytes
-  let mut output = Vec::new();
-  doc
-    .save_to(&mut std::io::Cursor::new(&mut output))
-    .map_err(|e| anyhow!("Failed to save PDF: {}", e))?;
+    let dynamic_image = image::load_from_memory(blob)
+      .map_err(|e| anyhow::anyhow!("Failed to decode image {} with image crate: {}", i, e))?;
 
-  Ok(output)
+    let rgba_image = dynamic_image.to_rgba8();
+    let width = rgba_image.width() as usize;
+    let height = rgba_image.height() as usize;
+    let raw_data = rgba_image.into_raw();
+
+    let raw_image = RawImage {
+      width: width,
+      height: height,
+      pixels: RawImageData::U8(raw_data),
+      data_format: RawImageFormat::RGBA8,
+      tag: Vec::new(),
+    };
+
+    let image_id = pdf_doc.add_image(&raw_image);
+
+    let a4_width = Mm(210.0);
+    let a4_height = Mm(297.0);
+    let image_width_mm = (width as f32) * 0.352778;
+    let image_height_mm = (height as f32) * 0.352778;
+
+    let mut ops = Vec::new();
+    let scale_x = a4_width.0 / image_width_mm;
+    let scale_y = a4_height.0 / image_height_mm;
+    let scale = scale_x.min(scale_y) * 0.9;
+
+    let scaled_width = image_width_mm * scale;
+    let scaled_height = image_height_mm * scale;
+    let translate_x = (a4_width.0 - scaled_width) / 2.0;
+    let translate_y = (a4_height.0 - scaled_height) / 2.0;
+
+    let transform = XObjectTransform {
+      translate_x: Some(Mm(translate_x).into()),
+      translate_y: Some(Mm(translate_y).into()),
+      rotate: None,
+      scale_x: Some(scale),
+      scale_y: Some(scale),
+      dpi: Some(72.0),
+    };
+
+    ops.push(Op::UseXobject {
+      id: image_id,
+      transform,
+    });
+
+    let page = PdfPage::new(a4_width, a4_height, ops);
+    pdf_doc.pages.push(page);
+  }
+
+  let save_options = PdfSaveOptions::default();
+  let pdf_bytes = pdf_doc.save(&save_options, &mut warnings);
+
+  fs::write(out, pdf_bytes)
+    .map_err(|e| anyhow::anyhow!("Failed to write PDF to {}: {}", out.display(), e))?;
+
+  Ok(())
 }
 
-/// Merges mixed content types (images and PDFs) into a single PDF
-///
-/// # Arguments
-/// * `files` - Vector of (MIME type, file bytes) tuples
-///
-/// # Returns
-/// * `Result<Vec<u8>>` - Merged PDF bytes or error
-///
-/// # Supported MIME types
-/// - `image/*` - Converted to PDF using image_to_single_page_pdf_bytes
-/// - `application/pdf` or `application/x-pdf` - Validated and included as-is
-/// - Others - Return error
-pub fn merge_mixed_to_pdf(files: Vec<(String, Vec<u8>)>) -> Result<Vec<u8>> {
-  if files.is_empty() {
-    return Err(anyhow!("No files provided for merging"));
+pub async fn merge_pdfs_via_sase_api(
+  base_pdf_bytes: Vec<u8>,
+  additional_pdf_bytes: Vec<Vec<u8>>,
+  jwt_token: &str,
+) -> Result<Vec<u8>> {
+  let api_endpoint = "https://drakoindustries.com/api/sase/pdf/merge";
+
+  let client = reqwest::Client::new();
+  let mut form = reqwest::multipart::Form::new();
+
+  let base_part = reqwest::multipart::Part::bytes(base_pdf_bytes)
+    .file_name("base-document.pdf")
+    .mime_str("application/pdf")
+    .map_err(|e| anyhow::anyhow!("Failed to create base PDF part: {}", e))?;
+  form = form.part("basePdf", base_part);
+
+  for (i, pdf_bytes) in additional_pdf_bytes.iter().enumerate() {
+    let filename = format!("additional-{}.pdf", i + 1);
+    let part = reqwest::multipart::Part::bytes(pdf_bytes.clone())
+      .file_name(filename)
+      .mime_str("application/pdf")
+      .map_err(|e| anyhow::anyhow!("Failed to create additional PDF part {}: {}", i, e))?;
+    form = form.part("additionalPdfs", part);
   }
+  let response = client
+    .post(api_endpoint)
+    .header("Authorization", format!("Bearer {}", jwt_token))
+    .multipart(form)
+    .send()
+    .await
+    .map_err(|e| anyhow::anyhow!("Failed to send merge request: {}", e))?;
 
-  let mut pdf_bytes_list: Vec<Vec<u8>> = Vec::new();
+  if !response.status().is_success() {
+    let status = response.status();
+    let error_text = response
+      .text()
+      .await
+      .unwrap_or_else(|_| "Unknown error".to_string());
 
-  // Process each file based on MIME type
-  for (mime_type, file_data) in files {
-    if mime_type.starts_with("image/") {
-      // Convert image to PDF
-      let pdf_bytes = image_to_single_page_pdf_bytes(&file_data)
-        .map_err(|e| anyhow!("Failed to convert image to PDF: {}", e))?;
-      pdf_bytes_list.push(pdf_bytes);
-    } else if mime_type == "application/pdf" || mime_type == "application/x-pdf" {
-      // Validate PDF by attempting to load it
-      let _pdf_doc = Document::load_mem(&file_data)
-        .map_err(|e| anyhow!("Failed to load PDF document: {}", e))?;
-      pdf_bytes_list.push(file_data);
-    } else {
-      return Err(anyhow!("Unsupported MIME type: {}", mime_type));
-    }
-  }
-
-  // If only one document, return it as-is
-  if pdf_bytes_list.len() == 1 {
-    return Ok(pdf_bytes_list.into_iter().next().unwrap());
-  }
-
-  // Merge multiple PDFs using lopdf
-  let mut merged_doc = Document::with_version("1.5");
-  let mut all_page_ids = Vec::new();
-
-  for pdf_bytes in pdf_bytes_list {
-    let doc = Document::load_mem(&pdf_bytes)
-      .map_err(|e| anyhow!("Failed to load PDF for merging: {}", e))?;
-
-    // Get all page IDs from the document
-    let pages_map = doc.get_pages();
-    let page_ids: Vec<_> = pages_map.keys().cloned().collect();
-
-    // Copy pages and their resources to merged document
-    for &page_id in &page_ids {
-      // Copy the page object
-      if let Ok(page_object) = doc.get_object((page_id, 0)) {
-        let new_page_id = merged_doc.add_object(page_object.clone());
-        all_page_ids.push(new_page_id);
-
-        // Copy referenced objects (resources, contents, etc.)
-        if let lopdf::Object::Dictionary(ref page_dict) = page_object {
-          // Copy resources if they exist
-          if let Ok(resources_ref) = page_dict.get(b"Resources") {
-            if let lopdf::Object::Reference((ref_id, gen)) = resources_ref {
-              if let Ok(resources_obj) = doc.get_object((*ref_id, *gen)) {
-                let new_resources_id = merged_doc.add_object(resources_obj.clone());
-                // Update the page to reference the new resources
-                if let Ok(lopdf::Object::Dictionary(ref mut new_page_dict)) =
-                  merged_doc.get_object_mut(new_page_id)
-                {
-                  new_page_dict.set("Resources", lopdf::Object::Reference(new_resources_id));
-                }
-              }
-            }
-          }
-
-          // Copy contents if they exist
-          if let Ok(contents_ref) = page_dict.get(b"Contents") {
-            if let lopdf::Object::Reference((ref_id, gen)) = contents_ref {
-              if let Ok(contents_obj) = doc.get_object((*ref_id, *gen)) {
-                let new_contents_id = merged_doc.add_object(contents_obj.clone());
-                // Update the page to reference the new contents
-                if let Ok(lopdf::Object::Dictionary(ref mut new_page_dict)) =
-                  merged_doc.get_object_mut(new_page_id)
-                {
-                  new_page_dict.set("Contents", lopdf::Object::Reference(new_contents_id));
-                }
-              }
-            }
-          }
-        }
+    match status.as_u16() {
+      401 => {
+        return Err(anyhow::anyhow!(
+          "Authentication failed: Invalid or expired JWT token"
+        ))
+      }
+      403 => return Err(anyhow::anyhow!("Access denied: Insufficient permissions")),
+      413 => {
+        return Err(anyhow::anyhow!(
+          "Request too large: PDF files exceed size limit"
+        ))
+      }
+      _ => {
+        return Err(anyhow::anyhow!(
+          "SASE API returned error {}: {}",
+          status,
+          error_text
+        ))
       }
     }
   }
 
-  // Create pages dictionary
-  if !all_page_ids.is_empty() {
-    let pages_dict = dictionary! {
-        "Type" => "Pages",
-        "Count" => all_page_ids.len() as i64,
-        "Kids" => all_page_ids.iter().map(|id| lopdf::Object::Reference(*id)).collect::<Vec<_>>(),
-    };
-    let pages_id = merged_doc.add_object(lopdf::Object::Dictionary(pages_dict));
+  let merged_pdf_bytes = response
+    .bytes()
+    .await
+    .map_err(|e| anyhow::anyhow!("Failed to read response bytes: {}", e))?;
 
-    // Update parent references for all pages
-    for page_id in &all_page_ids {
-      if let Ok(lopdf::Object::Dictionary(ref mut page_dict)) = merged_doc.get_object_mut(*page_id)
-      {
-        page_dict.set("Parent", lopdf::Object::Reference(pages_id));
-      }
-    }
+  Ok(merged_pdf_bytes.to_vec())
+}
 
-    // Create catalog
-    let catalog_dict = dictionary! {
-        "Type" => "Catalog",
-        "Pages" => lopdf::Object::Reference(pages_id),
-    };
-    let catalog_id = merged_doc.add_object(lopdf::Object::Dictionary(catalog_dict));
-    merged_doc
-      .trailer
-      .set("Root", lopdf::Object::Reference(catalog_id));
+pub async fn merge_mixed_to_pdf_via_sase_api(
+  first_pdf: Vec<u8>,
+  additional_blobs: Vec<Vec<u8>>,
+  jwt_token: &str,
+) -> Result<Vec<u8>> {
+  use std::env;
+
+  if additional_blobs.is_empty() {
+    return Ok(first_pdf);
   }
 
-  // Save merged document to bytes
-  let mut output = Vec::new();
-  merged_doc
-    .save_to(&mut std::io::Cursor::new(&mut output))
-    .map_err(|e| anyhow!("Failed to save merged PDF: {}", e))?;
+  let temp_dir = env::temp_dir();
+  let temp_blob_pdf = temp_dir.join("temp_sase_api_blobs.pdf");
 
-  Ok(output)
+  blobs_to_pdf(&additional_blobs, &temp_blob_pdf)?;
+
+  let image_pdf_bytes = fs::read(&temp_blob_pdf)
+    .map_err(|e| anyhow::anyhow!("Failed to read generated image PDF: {}", e))?;
+
+  let merged_bytes = merge_pdfs_via_sase_api(first_pdf, vec![image_pdf_bytes], jwt_token).await?;
+
+  let _ = fs::remove_file(&temp_blob_pdf);
+
+  Ok(merged_bytes)
+}
+
+pub fn create_test_pdf(out: &Path) -> Result<()> {
+  let mut pdf_doc = PdfDocument::new("Test PDF");
+  let mut warnings = Vec::<PdfWarnMsg>::new();
+
+  let page_width = Mm(210.0);
+  let page_height = Mm(297.0);
+  let ops = Vec::new();
+
+  let page = PdfPage::new(page_width, page_height, ops);
+  pdf_doc.pages.push(page);
+
+  let save_options = PdfSaveOptions::default();
+  let pdf_bytes = pdf_doc.save(&save_options, &mut warnings);
+
+  fs::write(out, pdf_bytes)
+    .map_err(|e| anyhow::anyhow!("Failed to write test PDF to {}: {}", out.display(), e))?;
+
+  Ok(())
 }

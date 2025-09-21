@@ -29,10 +29,11 @@ pub async fn add_income_source(
   Ok(())
 }
 
-
 #[tauri::command]
 pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let rows = sqlx::query(
     r#"
         SELECT *
@@ -41,11 +42,11 @@ pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
   )
   .fetch_all(pool)
   .await
-  .map_err(|e| format!("Failed to fetch documents: {}", e))?;
+  .map_err(|e| format!("Failed to fetch income sources: {}", e))?;
 
-  let mut documents = Vec::new();
+  let mut income_sources = Vec::new();
   for row in rows {
-    documents.push(IncomeSource {
+    income_sources.push(IncomeSource {
       source: row.try_get("source").unwrap_or_default(),
       employer_name: row.try_get("employer_name").unwrap_or_default(),
       job_title: row.try_get("job_title").unwrap_or_default(),
@@ -54,6 +55,5 @@ pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
     });
   }
 
-  Ok(documents)
+  Ok(income_sources)
 }
-

@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 "use client";
 
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
@@ -258,4 +255,102 @@ export function formatFileSize(bytes: number): string {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
+/**
+ * Fetches PDF data from an external API
+ */
+export async function fetchPdfFromApi(
+    pdfData: Record<string, any>,
+    accessToken: string
+): Promise<Uint8Array> {
+    try {
+        console.log("Fetching PDF from API with data:", pdfData);
+
+        const response = await fetch(
+            "https://drakoindustries.com/api/sase/pdf/generate",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify(pdfData),
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `API request failed: ${response.status} ${response.statusText}`
+            );
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        return new Uint8Array(arrayBuffer);
+    } catch (error) {
+        console.error("Failed to fetch PDF from API:", error);
+        throw new Error(`Failed to fetch PDF from API: ${error}`);
+    }
+}
+
+export async function buildCombinedPdfWithSaseApi(
+    firstPdf: Uint8Array,
+    documentIds: number[],
+    jwtToken: string
+): Promise<Uint8Array> {
+    try {
+        const result = await invoke("build_pdf_with_sase_api", {
+            firstPdf: Array.from(firstPdf),
+            idsInOrder: documentIds,
+            jwtToken: jwtToken,
+        });
+
+        if (result instanceof Array) {
+            return new Uint8Array(result);
+        } else {
+            throw new Error("Invalid response format from SASE API merge");
+        }
+    } catch (error) {
+        if (error instanceof Error) {
+            if (error.message.includes("Authentication failed")) {
+                throw new Error(
+                    "Authentication failed: Please check your JWT token"
+                );
+            }
+            if (error.message.includes("Access denied")) {
+                throw new Error("Access denied: Insufficient permissions");
+            }
+            if (error.message.includes("Request too large")) {
+                throw new Error(
+                    "Files too large: Please reduce PDF file sizes"
+                );
+            }
+        }
+
+        throw error;
+    }
+}
+
+export function downloadPdf(pdfData: Uint8Array, filename: string): void {
+    try {
+        console.log("Downloading PDF:", filename);
+
+        const blob = new Blob([pdfData as BlobPart], {
+            type: "application/pdf",
+        });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+        console.log("PDF download initiated:", filename);
+    } catch (error) {
+        console.error("Failed to download PDF:", error);
+        throw new Error(`Failed to download PDF: ${error}`);
+    }
 }

@@ -3,6 +3,12 @@ import { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { useDatabaseContextSafe } from "@/components/DatabaseInitializer";
+import { Button } from "@/components/ui/button";
+import {
+    fetchPdfFromApi,
+    downloadPdf,
+    buildCombinedPdfWithSaseApi,
+} from "@/utils/database";
 
 interface StoredSession {
     access_token: string;
@@ -46,6 +52,7 @@ export default function Home() {
     const [greeted, setGreeted] = useState<string | null>(null);
     const [user, setUser] = useState<{ email: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isPdfGenerating, setIsPdfGenerating] = useState(false);
     const router = useRouter();
     const { isDatabaseInitialized } = useDatabaseContextSafe();
 
@@ -167,6 +174,93 @@ export default function Home() {
         [router]
     );
 
+    const handleGenerateAndDownloadPdf = useCallback(async () => {
+        if (!user) {
+            console.error("No user logged in");
+            return;
+        }
+
+        setIsPdfGenerating(true);
+
+        try {
+            const supabase = createClient();
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+                throw new Error("No access token available");
+            }
+
+            console.log("Starting PDF generation process...");
+
+            // Sample data for PDF generation (you can modify this as needed)
+            const pdfData = {
+                full_name: "John Doe",
+                date_of_birth: "1990-05-15",
+                gender: "Male",
+                phone: "+1 (555) 123-4567",
+                email: user.email,
+                profile_address: "123 Main St, Los Angeles, CA 90012",
+                profile_created_at: "2025-01-10T14:32:00Z",
+                profile_updated_at: "2025-09-15T09:18:00Z",
+                listing_id: "LST-20250921-001",
+                listing_address: "456 Elm St, Los Angeles, CA 90013",
+                contact_email: "contact@listing.com",
+                contact_phone: "+1 (555) 987-6543",
+                contact_other: "Available via WhatsApp",
+                source_link: "https://apartments.com/listing/456-elm-st",
+                price_rent: "$2,450 / month",
+                housing_type: "Apartment",
+                lease_type: "12-Month Lease",
+                upfront_fees: "$500 security deposit, $150 application fee",
+                utilities: "Water, Trash included; Electricity separate",
+                credit_score_min: "650",
+                minimum_income: "$6,000 / month",
+                references_required: "Yes",
+                bedrooms: "2",
+                bathrooms: "2",
+                square_footage: "1,050",
+                layout_description: "Open floor plan with modern kitchen",
+                amenities: "Gym, Pool, Parking, In-unit Laundry",
+                pet_policy: "Pets allowed (max 2, $300 pet deposit)",
+                furnishing: "Unfurnished",
+                listing_notes: "Close to public transport and shopping centers",
+                listing_created_at: "2025-09-01T08:00:00Z",
+                listing_updated_at: "2025-09-18T11:45:00Z",
+            };
+
+            console.log("Fetching PDF from external API...");
+            const apiPdfData = await fetchPdfFromApi(
+                pdfData,
+                session.access_token
+            );
+
+            console.log("Combining with documents 12, 8, and 10...");
+            const documentIds = [12, 8, 10];
+            const combinedPdfData = await buildCombinedPdfWithSaseApi(
+                apiPdfData,
+                documentIds,
+                session.access_token
+            );
+
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+            const filename = `combined-document-${timestamp}.pdf`;
+            downloadPdf(combinedPdfData, filename);
+
+            console.log("PDF generation and download completed successfully!");
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            alert(
+                `Error generating PDF: ${
+                    error instanceof Error ? error.message : "Unknown error"
+                }`
+            );
+        } finally {
+            setIsPdfGenerating(false);
+        }
+    }, [user]);
+
     useEffect(() => {
         void checkAuth();
     }, [checkAuth]);
@@ -196,6 +290,46 @@ export default function Home() {
                     <p className="text-muted-foreground mt-2">
                         Good day, {user.email}!
                     </p>
+                </div>
+
+                {/* PDF Generation Section */}
+                <div className="bg-card rounded-lg border p-6 shadow-sm">
+                    <div className="space-y-4">
+                        <div>
+                            <h2 className="text-xl font-semibold">
+                                PDF Document Generator
+                            </h2>
+                            <p className="text-muted-foreground text-sm mt-1">
+                                Generate and download a combined PDF document
+                                from API data and documents 12, 8, and 10.
+                            </p>
+                        </div>
+
+                        <Button
+                            onClick={() => void handleGenerateAndDownloadPdf()}
+                            disabled={isPdfGenerating}
+                            className="w-full sm:w-auto"
+                        >
+                            {isPdfGenerating ? (
+                                <>
+                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                                    Generating PDF...
+                                </>
+                            ) : (
+                                "Generate & Download Combined PDF"
+                            )}
+                        </Button>
+
+                        {isPdfGenerating && (
+                            <div className="text-sm text-muted-foreground">
+                                <p>• Fetching PDF from API...</p>
+                                <p>
+                                    • Combining with documents 12, 8, and 10...
+                                </p>
+                                <p>• Preparing download...</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
