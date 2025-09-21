@@ -39,7 +39,6 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
     console.log("DATABASE READ: Fetching user profile on component mount.");
   }, []);
 
-  // Helper function to format date for input field (YYYY-MM-DD)
   const formatDateForInput = (dateString: string): string => {
     try {
       if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
