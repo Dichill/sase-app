@@ -1,8 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { DatabaseInitializer } from "@/components/DatabaseInitializer";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { ConditionalLayout } from "../components/ConditionalLayout";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -25,10 +24,7 @@ export default function RootLayout({
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
                 <DatabaseInitializer>
-                    <SidebarProvider>
-                        <AppSidebar />
-                        <main className="w-full">{children}</main>
-                    </SidebarProvider>
+                    <ConditionalLayout>{children}</ConditionalLayout>
                 </DatabaseInitializer>
             </body>
         </html>
