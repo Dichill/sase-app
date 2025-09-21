@@ -5,7 +5,7 @@ import { listingData } from "@/data/listingData";
 const listings = listingData;
 
 const ListingList = () => {
-  //GET /listings (PLS JUSTIN U GOT ME RIGHT?!)
+  //GET /listings (PLS JUSTIN U GOT ME RIGHT?!) get listings from db, return array of listings
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">

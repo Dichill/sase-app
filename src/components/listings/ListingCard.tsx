@@ -73,7 +73,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsFavorited(!isFavorited);
-    // TODO: Implement actual favorite logic (save to database/localStorage)
+    // TODO: Implement actual favorite logic (save to database/localStorage; update favorited status in db; also add favorite column to listings table in db) boolean
     console.log(
       `Listing ${id} ${!isFavorited ? "added to" : "removed from"} favorites`
     );

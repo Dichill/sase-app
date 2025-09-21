@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { invoke } from "@tauri-apps/api/core";
 
 const ListingPage = () => {
   const params = useParams();
@@ -71,19 +72,31 @@ const ListingPage = () => {
     return null;
   };
 
-  // JUSTIN ALL YOU!!!
+  
   useEffect(() => {
     setNotes(listing.notes || "");
+    getNotes(listing.notes || "");
   }, [listing.notes]);
+
+  // TEST: ALL YOU!!! reading
+  const getNotes = async (notes: string) => {
+    try {
+      const dbNotes: string = await invoke("get_listing_notes", { notes }); 
+      setNotes(dbNotes); 
+    } catch (error) {
+      console.error("Failed to load notes", error);
+    }
+  };
 
   const handleNotesChange = (value: string) => {
     setNotes(value);
     setHasUnsavedChanges(value !== (listing.notes || ""));
   };
 
-  // JUSTIN ALL YOU!!!
-  const handleSaveNotes = () => {
-    console.log("Saving notes:", notes);
+  // TEST: ALL YOU!!! update to db
+  const handleSaveNotes = async () => {
+    // console.log("Saving notes:", notes);
+    await invoke("set_listing_notes", { id: Number(params.id), notes });
     setHasUnsavedChanges(false);
   };
 
@@ -102,7 +115,7 @@ const ListingPage = () => {
     );
 
     if (confirmDelete) {
-      // TODO: Implement actual delete logic here
+      // TODO: Implement actual delete logic here; delete listing from db
       console.log("Deleting listing:", params.id);
       alert("Listing deleted successfully!");
       router.push("/listings"); // Navigate back to listings page
