@@ -123,3 +123,31 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom titlebar styles */
+@layer components {
+  .titlebar {
+    -webkit-app-region: drag;
+    user-select: none;
+    z-index: 9999;
+    position: relative;
+  }
+  
+  .titlebar button {
+    -webkit-app-region: no-drag;
+  }
+  
+  .titlebar-controls {
+    -webkit-app-region: no-drag;
+  }
+  
+  /* Smooth transitions for window controls */
+  .titlebar button {
+    @apply transition-all duration-150 ease-in-out;
+  }
+  
+  /* Custom close button hover effect */
+  .titlebar button:last-child:hover {
+    @apply bg-red-500 text-white;
+  }
+}

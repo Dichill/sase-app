@@ -328,12 +328,21 @@ fn get_environment_variable(name: &str) -> String {
   std::env::var(name).unwrap_or_else(|_| "".to_string())
 }
 
+fn initialize_app_files(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+Ok(())
+}
+
+// add new commands here
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_opener::init())
     .plugin(tauri_plugin_http::init())
+    .setup(|app| {
+            initialize_app_files(app.handle())?;
+            Ok(())
+        })
     .invoke_handler(tauri::generate_handler![
       get_environment_variable,
       greet,

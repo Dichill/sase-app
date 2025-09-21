@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import { DatabaseInitializer } from "@/components/DatabaseInitializer";
 import { ConditionalLayout } from "../components/ConditionalLayout";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Titlebar } from "@/components/titlebar";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -30,9 +31,16 @@ export default function RootLayout({
                     enableSystem
                     disableTransitionOnChange
                 >
-                    <DatabaseInitializer>
-                        <ConditionalLayout>{children}</ConditionalLayout>
-                    </DatabaseInitializer>
+                    <div className="flex flex-col h-screen">
+                        <Titlebar />
+                        <div className="flex-1 overflow-hidden">
+                            <DatabaseInitializer>
+                                <ConditionalLayout>
+                                    {children}
+                                </ConditionalLayout>
+                            </DatabaseInitializer>
+                        </div>
+                    </div>
                 </ThemeProvider>
             </body>
         </html>
