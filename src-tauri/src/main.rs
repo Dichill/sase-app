@@ -4,5 +4,3 @@
 fn main() {
   tauri_nextjs_template_lib::run();
 }
-
-
