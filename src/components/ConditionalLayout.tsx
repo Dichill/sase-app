@@ -20,10 +20,12 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
         return (
             <SidebarProvider>
                 <AppSidebar />
-                <main className="w-full h-full">{children}</main>
+                <main className="w-full h-full overflow-hidden">
+                    {children}
+                </main>
             </SidebarProvider>
         );
     }
 
-    return <main className="w-full h-full">{children}</main>;
+    return <main className="w-full h-full overflow-hidden">{children}</main>;
 }

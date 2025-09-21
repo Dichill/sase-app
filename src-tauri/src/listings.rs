@@ -6,7 +6,9 @@ use sqlx::Row;
 #[tauri::command]
 pub async fn add_listing(listing: Listing) -> Result<i64, String> {
   println!("add_listing called with address: {}", listing.address);
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let result = sqlx::query(
     r#"
     INSERT INTO listings (
@@ -49,7 +51,9 @@ pub async fn add_listing(listing: Listing) -> Result<i64, String> {
 #[tauri::command]
 pub async fn get_listings() -> Result<Vec<Listing>, String> {
   println!("get_listings called");
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let rows = sqlx::query(
     r#"

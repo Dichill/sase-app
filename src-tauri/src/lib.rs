@@ -8,8 +8,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 use std::str::FromStr;
+use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::OnceCell;
+use tokio::sync::Mutex;
 
 #[derive(Deserialize)]
 struct OpenArgs {
@@ -17,7 +18,7 @@ struct OpenArgs {
   password: String,
 }
 
-pub static DB_POOL: OnceCell<SqlitePool> = OnceCell::const_new();
+pub static DB_POOL: OnceLock<Arc<Mutex<Option<SqlitePool>>>> = OnceLock::new();
 
 #[tauri::command]
 async fn open_db_with_password(args: OpenArgs) -> Result<serde_json::Value, String> {
@@ -59,7 +60,8 @@ async fn open_db_with_password(args: OpenArgs) -> Result<serde_json::Value, Stri
     .map_err(|e| format!("Failed to create tables: {}", e))?;
 
   println!("Setting DB_POOL...");
-  let _ = DB_POOL.set(pool);
+  let db_pool = Arc::new(Mutex::new(Some(pool)));
+  let _ = DB_POOL.set(db_pool);
 
   println!("Database initialization successful!");
   Ok(serde_json::json!({ "success": true, "cipher_version": check }))
@@ -142,9 +144,10 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     CREATE TABLE IF NOT EXISTS documents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      document_type TEXT NOT NULL CHECK (document_type IN ('ID Card', 'Drivers License', 'Passport', 'Other')),
+      document_type TEXT NOT NULL,
       reminder_date DATETIME,
-      document_references TEXT, -- filename with extension
+      mime_type TEXT,
+      data BLOB,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     "#,
@@ -272,7 +275,8 @@ struct Document {
   name: String,
   document_type: String,
   reminder_date: Option<String>,
-  document_references: Option<String>,
+  mime_type: Option<String>,
+  data: Option<Vec<u8>>,
   updated_at: Option<String>,
 }
 
@@ -316,6 +320,93 @@ async fn initialize_user_database(
 }
 
 #[tauri::command]
+async fn delete_database(app_handle: tauri::AppHandle) -> Result<(), String> {
+  use tauri::Manager;
+
+  // Close and clear the database pool
+  if let Some(db_pool) = DB_POOL.get() {
+    let mut pool_guard = db_pool.lock().await;
+    if let Some(pool) = pool_guard.take() {
+      pool.close().await;
+    }
+  }
+
+  tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+  let app_data_dir = app_handle
+    .path()
+    .app_data_dir()
+    .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+  let db_file_path = app_data_dir.join("sase.db");
+
+  if db_file_path.exists() {
+    #[cfg(unix)]
+    {
+      use std::os::unix::fs::PermissionsExt;
+      if let Ok(metadata) = std::fs::metadata(&db_file_path) {
+        let mut perms = metadata.permissions();
+        perms.set_mode(0o666);
+        let _ = std::fs::set_permissions(&db_file_path, perms);
+      }
+    }
+
+    std::fs::remove_file(&db_file_path).map_err(|e| {
+      format!(
+        "Failed to delete database file '{}': {} (Error code: {})",
+        db_file_path.display(),
+        e,
+        e.raw_os_error().unwrap_or(-1)
+      )
+    })?;
+    println!("Database file deleted successfully: {:?}", db_file_path);
+  } else {
+    println!("Database file does not exist: {:?}", db_file_path);
+  }
+
+  Ok(())
+}
+
+#[tauri::command]
+fn get_database_info(app_handle: tauri::AppHandle) -> Result<serde_json::Value, String> {
+  use std::os::unix::fs::PermissionsExt;
+  use tauri::Manager;
+
+  let app_data_dir = app_handle
+    .path()
+    .app_data_dir()
+    .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+  let db_file_path = app_data_dir.join("sase.db");
+
+  if db_file_path.exists() {
+    match std::fs::metadata(&db_file_path) {
+      Ok(metadata) => {
+        let permissions = metadata.permissions();
+        Ok(serde_json::json!({
+          "exists": true,
+          "path": db_file_path.to_string_lossy(),
+          "size": metadata.len(),
+          "permissions": format!("{:o}", permissions.mode()),
+          "readonly": permissions.readonly(),
+          "is_file": metadata.is_file()
+        }))
+      }
+      Err(e) => Ok(serde_json::json!({
+        "exists": true,
+        "path": db_file_path.to_string_lossy(),
+        "error": format!("Failed to get metadata: {}", e)
+      })),
+    }
+  } else {
+    Ok(serde_json::json!({
+      "exists": false,
+      "path": db_file_path.to_string_lossy()
+    }))
+  }
+}
+
+#[tauri::command]
 fn greet() -> String {
   let now = SystemTime::now();
   let epoch_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
@@ -346,11 +437,15 @@ pub fn run() {
       open_db_with_password,
       initialize_user_database,
       some_command,
+      delete_database,
+      get_database_info,
       profile::add_income_source,
       listings::add_listing,
       listings::get_listings,
-      document::fetch_documents,
-      document::add_document
+      document::get_documents,
+      document::add_document,
+      document::read_file_as_blob,
+      document::delete_document,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

@@ -1,5 +1,7 @@
 import * as React from "react";
-import { ChevronRight, File, Folder } from "lucide-react";
+import { ChevronRight, File, Folder, Settings, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 import {
     Collapsible,
@@ -22,10 +24,12 @@ import {
 } from "@/components/ui/sidebar";
 
 import { navbar as data } from "@/data/navbar";
-import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
+import { handleLogout } from "@/utils/database";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+    const router = useRouter();
+
     return (
         <Sidebar {...props} style={{ marginTop: "48px" }}>
             <SidebarContent>
@@ -57,12 +61,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </SidebarGroupContent>
                 </SidebarGroup> */}
             </SidebarContent>
-            <SidebarFooter>
+            <SidebarFooter className="mb-12">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <div className="flex items-center justify-center p-2">
-                            <ThemeToggle />
-                        </div>
+                        <SidebarMenuButton asChild className="cursor-pointer">
+                            <Link href="/settings" prefetch>
+                                <Settings />
+                                <span>Settings</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            onClick={() => {
+                                void handleLogout().then(() => {
+                                    router.push("/login");
+                                });
+                            }}
+                            className="cursor-pointer"
+                        >
+                            <LogOut />
+                            <span>Logout</span>
+                        </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarFooter>

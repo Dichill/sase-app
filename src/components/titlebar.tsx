@@ -62,6 +62,7 @@ export function Titlebar({
                             D
                         </span>
                     </div>
+                    <span className="text-sm font-bold">{title}</span>
                 </div>
             </div>
 
