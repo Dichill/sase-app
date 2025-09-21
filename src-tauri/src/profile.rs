@@ -7,6 +7,8 @@ use crate::MonthlyIncome;
 use crate::DB_POOL;
 use sqlx::Row;
 
+
+// Income Sources
 #[tauri::command]
 pub async fn add_income_source(
   source: String,
@@ -59,6 +61,21 @@ pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
 }
 
 #[tauri::command]
+pub async fn delete_income_source(id: i64) -> Result<(), String> {
+  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+
+  sqlx::query("DELETE FROM monthly_income WHERE id = ?")
+  .bind(id)
+  .execute(pool)
+  .await
+  .map_err(|e| format!("Failed to delete entry:  {}", e))?;
+
+  Ok(())
+}
+// End Income Sources
+
+// Monthly Income
+#[tauri::command]
 pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
   let pool = DB_POOL.get().ok_or("Database not initialized")?;
   let rows = sqlx::query(
@@ -83,15 +100,24 @@ pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
 }
 
 #[tauri::command]
-pub async fn delete_income_source(id: i64) -> Result<(), String> {
+pub async fn set_monthly_income(income: f64) -> Result<(), String> {
   let pool = DB_POOL.get().ok_or("Database not initialized")?;
 
-  sqlx::query("DELETE FROM monthly_income WHERE id = ?")
-  .bind(id)
-  .execute(pool)
-  .await
-  .map_err(|e| format!("Failed to delete entry:  {}", e))?;
+  // Assuming there's only one profile for simplicity; adjust as needed
+  sqlx::query("UPDATE monthly_income SET monthly_income = ? WHERE profile_id = 1")
+    .bind(income)
+    .execute(pool)
+    .await
+    .map_err(|e| format!("Failed to update monthly income: {}", e))?;
 
   Ok(())
 }
+// End Monthly Income
+
+
+
+
+
+
+
 
