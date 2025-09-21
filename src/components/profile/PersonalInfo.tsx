@@ -20,7 +20,9 @@ interface ProfileProps {
 const PersonalInfo: React.FC<ProfileProps> = ({ user }) => {
   return (
     <div className="rounded-lg border px-4 py-6">
-      <h2 className="border-b pb-3">Personal Information</h2>
+      <h2 className="border-b pb-3 text-lg font-medium">
+        Personal Information
+      </h2>
       <DescriptionList>
         <DescriptionTerm>Name</DescriptionTerm>
         <DescriptionDetails>{user.name}</DescriptionDetails>

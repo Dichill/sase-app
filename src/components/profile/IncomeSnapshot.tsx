@@ -47,10 +47,22 @@ const createEmptyIncomeSource = (): IncomeSource => ({
 });
 
 const IncomeSnapshot: React.FC = () => {
-  const [monthlyIncome, setMonthlyIncome] = useState<string>("");
+  const [monthlyIncome, setMonthlyIncome] = useState<number>(0);
+  const [isEditingIncome, setIsEditingIncome] = useState<boolean>(false);
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
   const [editBuffer, setEditBuffer] = useState<
-    Partial<Record<string, { source: string; employerName: string; jobTitle: string; employmentLength: string; employerContact: string }>>
+    Partial<
+      Record<
+        string,
+        {
+          source: string;
+          employerName: string;
+          jobTitle: string;
+          employmentLength: string;
+          employerContact: string;
+        }
+      >
+    >
   >({});
 
   //save to database (replace all this!!)
@@ -103,7 +115,13 @@ const IncomeSnapshot: React.FC = () => {
       if (current) {
         setEditBuffer((buf) => ({
           ...buf,
-          [id]: { source: current.source, employerName: current.employerName, jobTitle: current.jobTitle, employmentLength: current.employmentLength, employerContact: current.employerContact },
+          [id]: {
+            source: current.source,
+            employerName: current.employerName,
+            jobTitle: current.jobTitle,
+            employmentLength: current.employmentLength,
+            employerContact: current.employerContact,
+          },
         }));
       }
       return prev.map((source) =>
@@ -122,7 +140,10 @@ const IncomeSnapshot: React.FC = () => {
         source.id === id
           ? {
               ...source,
-              source: original.source as "Employment" | "Self-Employed" | "Other",
+              source: original.source as
+                | "Employment"
+                | "Self-Employed"
+                | "Other",
               employerName: original.employerName,
               jobTitle: original.jobTitle,
               employmentLength: original.employmentLength,
@@ -141,28 +162,107 @@ const IncomeSnapshot: React.FC = () => {
   return (
     <div className="rounded-lg border px-4 py-6">
       <div className="flex items-center justify-between border-b pb-3">
-        <h2 className="text-lg font-medium">Income Sources</h2>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label="Add income source"
-          onClick={() => {
-            addIncomeSource();
-          }}
-          className="cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        <h2 className="text-lg font-medium">Employment</h2>
       </div>
 
       <div className="mt-4 space-y-4">
+        <DescriptionList>
+          <DescriptionTerm>Monthly Income</DescriptionTerm>
+          <DescriptionDetails>
+            {isEditingIncome ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={monthlyIncome}
+                  onChange={(e) => {
+                    setMonthlyIncome(Number(e.target.value));
+                  }}
+                  placeholder="Enter monthly income"
+                  className="max-w-xs"
+                />
+
+                <div className="flex items-center ">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="cursor-pointer"
+                    aria-label="Save"
+                    onClick={() => {
+                      setIsEditingIncome(false);
+                    }}
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="cursor-pointer"
+                    aria-label="Cancel"
+                    onClick={() => {
+                      setIsEditingIncome(false);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3">
+                <div>${monthlyIncome.toLocaleString()}</div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="cursor-pointer"
+                      aria-label="More actions"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setIsEditingIncome(true);
+                      }}
+                    >
+                      Edit
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+          </DescriptionDetails>
+        </DescriptionList>
+        <div className="flex items-center justify-between border-b pb-3">
+          <h4>Income Sources</h4>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="Add income source"
+            onClick={() => {
+              addIncomeSource();
+            }}
+            className="cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
         <DescriptionList>
           {incomeSources
             .filter((i) => !i.isEditing)
             .map((income) => (
               <Fragment key={income.id}>
-                <DescriptionTerm>{income.source} - {income.jobTitle}</DescriptionTerm>
+                <DescriptionTerm>
+                  {income.source} - {income.jobTitle}
+                </DescriptionTerm>
                 <DescriptionDetails>
                   <div className="flex items-center justify-between gap-3">
                     <div className="space-y-1">
@@ -216,11 +316,17 @@ const IncomeSnapshot: React.FC = () => {
             <div key={income.id} className="space-y-4 border-t pt-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Source Type</label>
+                  <label className="text-sm font-medium mb-1 block">
+                    Source Type
+                  </label>
                   <Select
                     value={income.source}
                     onValueChange={(value) => {
-                      handleChange(income.id, "source", value as IncomeSource["source"]);
+                      handleChange(
+                        income.id,
+                        "source",
+                        value as IncomeSource["source"]
+                      );
                     }}
                   >
                     <SelectTrigger>
@@ -230,7 +336,9 @@ const IncomeSnapshot: React.FC = () => {
                       <SelectGroup>
                         <SelectLabel>Income Source</SelectLabel>
                         <SelectItem value="Employment">Employment</SelectItem>
-                        <SelectItem value="Self-Employed">Self-Employed</SelectItem>
+                        <SelectItem value="Self-Employed">
+                          Self-Employed
+                        </SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectGroup>
                     </SelectContent>
@@ -238,7 +346,9 @@ const IncomeSnapshot: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Job Title</label>
+                  <label className="text-sm font-medium mb-1 block">
+                    Job Title
+                  </label>
                   <Input
                     value={income.jobTitle}
                     onChange={(e) => {
@@ -249,7 +359,9 @@ const IncomeSnapshot: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Employer Name</label>
+                  <label className="text-sm font-medium mb-1 block">
+                    Employer Name
+                  </label>
                   <Input
                     value={income.employerName}
                     onChange={(e) => {
@@ -260,22 +372,34 @@ const IncomeSnapshot: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Employment Length</label>
+                  <label className="text-sm font-medium mb-1 block">
+                    Employment Length
+                  </label>
                   <Input
                     value={income.employmentLength}
                     onChange={(e) => {
-                      handleChange(income.id, "employmentLength", e.target.value);
+                      handleChange(
+                        income.id,
+                        "employmentLength",
+                        e.target.value
+                      );
                     }}
                     placeholder="e.g., 2 years"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="text-sm font-medium mb-1 block">Employer Contact</label>
+                  <label className="text-sm font-medium mb-1 block">
+                    Employer Contact
+                  </label>
                   <Input
                     value={income.employerContact}
                     onChange={(e) => {
-                      handleChange(income.id, "employerContact", e.target.value);
+                      handleChange(
+                        income.id,
+                        "employerContact",
+                        e.target.value
+                      );
                     }}
                     placeholder="Email or phone"
                   />
@@ -286,7 +410,7 @@ const IncomeSnapshot: React.FC = () => {
                 <Button
                   type="button"
                   size="icon"
-                  variant="outline"
+                  variant="ghost"
                   className="cursor-pointer"
                   aria-label="Save"
                   onClick={() => {

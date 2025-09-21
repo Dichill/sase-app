@@ -43,7 +43,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
+        {/* <SidebarGroup>
           <SidebarGroupLabel>Documents</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -52,43 +52,43 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup> */}
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
   );
 }
 
-function Tree({ item }: { item: string | any[] }) {
-  const [name, ...items] = Array.isArray(item) ? item : [item];
+// function Tree({ item }: { item: string | any[] }) {
+//   const [name, ...items] = Array.isArray(item) ? item : [item];
 
-  if (!items.length) {
-    return (
-      <SidebarMenuButton className="data-[active=true]:bg-transparent">
-        <File />
-        {name}
-      </SidebarMenuButton>
-    );
-  }
+//   if (!items.length) {
+//     return (
+//       <SidebarMenuButton className="data-[active=true]:bg-transparent">
+//         <File />
+//         {name}
+//       </SidebarMenuButton>
+//     );
+//   }
 
-  return (
-    <SidebarMenuItem>
-      <Collapsible className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90">
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton>
-            <ChevronRight className="transition-transform" />
-            <Folder />
-            {name}
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenuSub>
-            {items.map((subItem, index) => (
-              <Tree key={index} item={subItem} />
-            ))}
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </Collapsible>
-    </SidebarMenuItem>
-  );
-}
+//   return (
+//     <SidebarMenuItem>
+//       <Collapsible className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90">
+//         <CollapsibleTrigger asChild>
+//           <SidebarMenuButton>
+//             <ChevronRight className="transition-transform" />
+//             <Folder />
+//             {name}
+//           </SidebarMenuButton>
+//         </CollapsibleTrigger>
+//         <CollapsibleContent>
+//           <SidebarMenuSub>
+//             {items.map((subItem, index) => (
+//               <Tree key={index} item={subItem} />
+//             ))}
+//           </SidebarMenuSub>
+//         </CollapsibleContent>
+//       </Collapsible>
+//     </SidebarMenuItem>
+//   );
+// }
