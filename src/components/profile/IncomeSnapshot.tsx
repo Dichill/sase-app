@@ -60,15 +60,6 @@ const IncomeSnapshot: React.FC = () => {
 
   // delete from database function
 
-  // save to database (replace all this!!)
-  // const saveIncomeSource = async (data: IncomeSource[]) => {
-  //   return new Promise<void>((resolve) => {
-  //     console.log("Saving income source data", data);
-  //     setTimeout(() => {
-  //       resolve();
-  //     }, 300);
-  //   });
-  // };
   const saveIncomeSource = async (data: IncomeSource[]) => {
     console.log("Saving income source data", data);
     for (const src of data) {
