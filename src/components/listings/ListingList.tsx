@@ -1,36 +1,26 @@
 "use client";
 import ListingCard from "./ListingCard";
+import { listingData } from "@/data/listingData";
 
-const listings = [
-  {
-    id: 1,
-    address: "444 Broke Blvd",
-    city: "Broke City",
-    phoneNumber: "123-456-7890",
-    email: "prince@charming.com",
-    bedrooms: "2",
-    bathrooms: "2",
-    cost: 1000,
-  },
-  {
-    id: 2,
-    address: "444 Rich Blvd",
-    city: "Rich City",
-    phoneNumber: "123-456-7890",
-    email: "prince@charming.com",
-    bedrooms: "3",
-    bathrooms: "0",
-    cost: 2000,
-  },
-];
+const listings = listingData;
 
 const ListingList = () => {
-  //GET /listings (PLS JUSTIN U GOT ME RIGHT?!)
+  //GET /listings (PLS JUSTIN U GOT ME RIGHT?!) get listings from db, return array of listings
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
       {listings.map((listing, index) => (
-        <ListingCard key={index} {...listing} />
+        <ListingCard
+          key={index}
+          id={listing.id}
+          address={listing.address}
+          city="city that gotta be damn PARSED!"
+          phoneNumber={listing.contact_phone}
+          email={listing.contact_email}
+          bedrooms={listing.bedrooms}
+          bathrooms={listing.bathrooms}
+          cost={listing.price_rent}
+        />
       ))}
     </div>
   );

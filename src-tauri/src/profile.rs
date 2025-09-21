@@ -3,6 +3,7 @@
 // Import get_db_pool from the correct module if it's defined elsewhere
 // Adjust the path as necessary
 use crate::IncomeSource;
+use crate::MonthlyIncome;
 use crate::DB_POOL;
 use sqlx::Row;
 
@@ -44,11 +45,37 @@ pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
   let mut documents = Vec::new();
   for row in rows {
     documents.push(IncomeSource {
+      id: row.try_get("id").unwrap_or_default(),
+      profile_id: row.try_get("profile_id").unwrap_or_default(),
       source: row.try_get("source").unwrap_or_default(),
       employer_name: row.try_get("employer_name").unwrap_or_default(),
       job_title: row.try_get("job_title").unwrap_or_default(),
       employment_length: row.try_get("employment_length").unwrap_or_default(),
       employer_contact: row.try_get("employer_contact").unwrap_or_default(),
+    });
+  }
+
+  Ok(documents)
+}
+
+#[tauri::command]
+pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
+  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let rows = sqlx::query(
+    r#"
+        SELECT *
+        FROM monthly_income
+        "#,
+  )
+  .fetch_all(pool)
+  .await
+  .map_err(|e| format!("Failed to fetch documents: {}", e))?;
+
+  let mut documents = Vec::new();
+  for row in rows {
+    documents.push(MonthlyIncome {
+      profile_id: row.try_get("profile_id").unwrap_or_default(),
+      monthly_income: row.try_get("monthly_income").unwrap_or_default(),
     });
   }
 

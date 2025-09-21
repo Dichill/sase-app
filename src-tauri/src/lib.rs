@@ -125,11 +125,26 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     r#"
     CREATE TABLE IF NOT EXISTS income_sources (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER,
         source TEXT NOT NULL,
         employer_name TEXT,
         job_title TEXT,
         employment_length TEXT,
         employer_contact TEXT
+        FOREIGN KEY(profile_id) REFERENCES profile(id)
+    )
+    "#,
+  )
+  .execute(pool)
+  .await?;
+
+  // Create Monthly Income table
+  sqlx::query(
+    r#"
+    CREATE TABLE IF NOT EXISTS monthly_income (
+      profile_id INTEGER PRIMARY KEY,
+      monthly_income INTEGER,
+      FOREIGN KEY(profile_id) REFERENCES profile(id)
     )
     "#,
   )
@@ -279,11 +294,19 @@ struct Document {
 
 #[derive(Serialize, Deserialize)]
 struct IncomeSource {
+  id: Option<i64>,
+  profile_id: Option<i64>,
   source: String,
   employer_name: String,
   job_title: String,
   employment_length: String,
   employer_contact: String, 
+}
+
+#[derive(Serialize, Deserialize)]
+struct MonthlyIncome {
+  profile_id: Option<i64>,
+  monthly_income: f64,
 }
 
 #[derive(Serialize, Deserialize)]

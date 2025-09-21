@@ -1,12 +1,11 @@
-// DICHILL HELLPPPPPPPPPPp
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 "use client";
 
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { listingData } from "@/data/listingData";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -59,7 +58,15 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-const CreateListing = () => {
+const EditListing = () => {
+  const params = useParams();
+  const router = useRouter();
+  const listingId = params.id as string;
+
+  const existingListing = listingData.find(
+    (listing) => listing.id === listingId
+  );
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -71,19 +78,64 @@ const CreateListing = () => {
     },
   });
 
+  useEffect(() => {
+    if (existingListing) {
+      form.reset({
+        address: existingListing.address,
+        bedrooms: existingListing.bedrooms,
+        bathrooms: existingListing.bathrooms,
+        source_link: existingListing.source_link,
+        price_rent: existingListing.price_rent,
+        contact_email: existingListing.contact_email,
+        contact_phone: existingListing.contact_phone,
+        contact_other: existingListing.contact_other,
+        housing_type: existingListing.housing_type,
+        lease_type: existingListing.lease_type,
+        square_footage: existingListing.square_footage,
+        upfront_fees: existingListing.upfront_fees,
+        layout_description: existingListing.layout_description,
+        utilities: existingListing.utilities,
+        credit_score_min: existingListing.credit_score_min,
+        minimum_income: existingListing.minimum_income,
+        references_required: existingListing.references_required,
+        amenities: existingListing.amenities,
+        pet_policy: existingListing.pet_policy,
+        furnishing: existingListing.furnishing,
+        notes: existingListing.notes,
+      });
+    }
+  }, [existingListing, form]);
+
   const onSubmit: SubmitHandler<FormData> = (values) => {
-    // Do something with the form values.
-    // This will be type-safe and validated.
-    console.log(values);
+    // Update the listing with the form values
+    console.log("Updating listing:", listingId, values);
+    // TODO: Implement actual update logic here; update listing in db
+    // For now, just log the values and navigate back
+    alert("Listing updated successfully!");
+    router.push(`/listings/${listingId}`);
   };
+
+  // Show error if listing not found
+  if (!existingListing) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Listing Not Found</h1>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-y-auto">
       <div className="container mx-auto max-w-4xl p-6">
-        <h1 className="text-2xl font-bold mb-4">Bookmark a listing</h1>
+        <h1 className="text-2xl font-bold mb-4">Edit Listing</h1>
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={(e) => {
+              e.preventDefault();
+              void form.handleSubmit(onSubmit)(e);
+            }}
             className="space-y-6 pb-8"
           >
             <Accordion type="multiple">
@@ -527,7 +579,7 @@ const CreateListing = () => {
             </Accordion>
 
             <Button type="submit" className="w-full mt-10">
-              Submit
+              Update Listing
             </Button>
           </form>
         </Form>
@@ -536,4 +588,4 @@ const CreateListing = () => {
   );
 };
 
-export default CreateListing;
+export default EditListing;
