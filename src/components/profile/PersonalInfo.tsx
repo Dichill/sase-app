@@ -89,7 +89,7 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
     setUser((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Mock UPDATE operation, save changes to profile to db
+  // TEST: UPDATE operation, save changes to profile to db
   const saveProfile = async () => {
     console.log("DATABASE UPDATE: Updating user profile:", user);
 
@@ -100,8 +100,8 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
     }
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
+      // await new Promise((resolve) => setTimeout(resolve, 300));
+      await invoke("set_user_profile", { profile: user });
       setOriginalUser(user);
       setIsEditing(false);
       console.log("Profile UPDATE successful.");
@@ -111,6 +111,7 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
     }
   };
 
+  
   const startEditing = () => {
     setOriginalUser(user);
     setIsEditing(true);

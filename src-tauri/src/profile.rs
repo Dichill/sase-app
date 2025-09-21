@@ -103,7 +103,6 @@ pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
 pub async fn set_monthly_income(income: f64) -> Result<(), String> {
   let pool = DB_POOL.get().ok_or("Database not initialized")?;
 
-  // Assuming there's only one profile for simplicity; adjust as needed
   sqlx::query("UPDATE monthly_income SET monthly_income = ? WHERE profile_id = 1")
     .bind(income)
     .execute(pool)
@@ -145,6 +144,40 @@ pub async fn get_user_profile() -> Result<Vec<String>, String> {
   }
 
   Ok(user_profile)
+}
+
+pub async fn set_user_profile(
+  name: String,
+  email: String,
+  phone: String,
+  address: String,
+  date_of_birth: String,
+  ssn: String,
+  marital_status: String,
+  dependents: i32,
+  employment_status: String,
+  employer_name: String,
+  job_title: String,
+  annual_income: f64,
+) -> Result<(), String> {
+  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  sqlx::query("UPDATE user_profile SET name = ?, email = ?, phone = ?, address = ?, date_of_birth = ?, ssn = ?, marital_status = ?, dependents = ?, employment_status = ?, employer_name = ?, job_title = ?, annual_income = ? WHERE profile_id = 1")
+        .bind(name)
+        .bind(email)
+        .bind(phone)
+        .bind(address)
+        .bind(date_of_birth)
+        .bind(ssn)
+        .bind(marital_status)
+        .bind(dependents)
+        .bind(employment_status)
+        .bind(employer_name)
+        .bind(job_title)
+        .bind(annual_income)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+  Ok(())
 }
 
 // End User Profile
