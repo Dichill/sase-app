@@ -1,4 +1,5 @@
 mod document;
+mod helpers;
 mod listings;
 mod profile;
 
@@ -446,6 +447,7 @@ pub fn run() {
       document::add_document,
       document::read_file_as_blob,
       document::delete_document,
+      document::build_pdf_with_first,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

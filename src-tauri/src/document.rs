@@ -1,5 +1,7 @@
+use crate::helpers::pdf_docs::merge_mixed_to_pdf;
 use crate::Document;
 use crate::DB_POOL;
+use lopdf::Document as LoDocument;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::fs;
@@ -98,6 +100,49 @@ pub async fn delete_document(document_id: i64) -> Result<(), String> {
     .await
     .map_err(|e| format!("Failed to delete document: {}", e))?;
   Ok(())
+}
+
+#[tauri::command]
+pub async fn build_pdf_with_first(
+  first_pdf: Vec<u8>,
+  ids_in_order: Vec<i64>,
+) -> Result<Vec<u8>, String> {
+  // Validate the first PDF
+  LoDocument::load_mem(&first_pdf).map_err(|e| format!("First PDF is invalid: {e}"))?;
+
+  // Pull blobs from DB in the CALLER’S order
+  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = db_pool.lock().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
+
+  let mut sources: Vec<(String, Vec<u8>)> = Vec::with_capacity(ids_in_order.len() + 1);
+
+  // First PDF goes first
+  sources.push(("application/pdf".to_string(), first_pdf));
+
+  // Then append the selected documents (images become single-page PDFs later)
+  for id in ids_in_order {
+    let row = sqlx::query(r#"SELECT mime_type, data FROM documents WHERE id = ? LIMIT 1"#)
+      .bind(id)
+      .fetch_optional(pool)
+      .await
+      .map_err(|e| format!("DB read failed for id {id}: {e}"))?;
+
+    let Some(row) = row else {
+      return Err(format!("Document not found: {id}"));
+    };
+
+    let mime: Option<String> = row.try_get("mime_type").ok();
+    let data: Option<Vec<u8>> = row.try_get("data").ok();
+
+    let mime = mime.ok_or_else(|| format!("Missing mime_type for id {id}"))?;
+    let data = data.ok_or_else(|| format!("Missing data blob for id {id}"))?;
+
+    sources.push((mime, data));
+  }
+
+  // Merge (images → single-page PDFs, PDFs as-is)
+  merge_mixed_to_pdf(sources).map_err(|e| format!("Failed to build final PDF: {e:#}"))
 }
 
 fn get_mime_type(file_path: &str) -> String {
