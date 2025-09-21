@@ -12,8 +12,7 @@ pub struct FileBlob {
 
 #[tauri::command]
 pub async fn get_documents() -> Result<Vec<Document>, String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let rows = sqlx::query(
     r#"
@@ -43,8 +42,7 @@ pub async fn get_documents() -> Result<Vec<Document>, String> {
 
 #[tauri::command]
 pub async fn add_document(document: Document) -> Result<i64, String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let result = sqlx::query(
     r#"
@@ -89,8 +87,7 @@ pub async fn read_file_as_blob(file_path: String) -> Result<FileBlob, String> {
 
 #[tauri::command]
 pub async fn delete_document(document_id: i64) -> Result<(), String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   sqlx::query("DELETE FROM documents WHERE id = ?")
     .bind(document_id)
@@ -155,8 +152,7 @@ pub async fn build_pdf_with_sase_api(
 ) -> Result<Vec<u8>, String> {
   use crate::helpers::pdf_docs::merge_mixed_to_pdf_via_sase_api_with_pdfs;
 
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let mut additional_blobs = Vec::new();
