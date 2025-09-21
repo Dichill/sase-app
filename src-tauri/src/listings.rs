@@ -6,8 +6,7 @@ use sqlx::Row;
 #[tauri::command]
 pub async fn add_listing(listing: Listing) -> Result<i64, String> {
   println!("add_listing called with address: {}", listing.address);
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let result = sqlx::query(
     r#"
@@ -51,8 +50,7 @@ pub async fn add_listing(listing: Listing) -> Result<i64, String> {
 #[tauri::command]
 pub async fn get_listings() -> Result<Vec<Listing>, String> {
   println!("get_listings called");
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let rows = sqlx::query(
@@ -214,8 +212,7 @@ pub async fn update_listing(
 // Get Notes for specified listing
 #[tauri::command]
 pub async fn get_listing_notes(listing_id: i64) -> Result<String, String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let row = sqlx::query("SELECT notes FROM listings WHERE id = ?")
@@ -231,8 +228,7 @@ pub async fn get_listing_notes(listing_id: i64) -> Result<String, String> {
 // Set/Update Notes for specified listing
 #[tauri::command]
 pub async fn set_listing_notes(listing_id: i64, notes: String) -> Result<(), String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let result = sqlx::query("UPDATE listings SET notes = ? WHERE id = ?")

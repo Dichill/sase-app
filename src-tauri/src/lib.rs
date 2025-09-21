@@ -9,9 +9,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 use std::str::FromStr;
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
+use std::sync::LazyLock;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 #[derive(Deserialize)]
 struct OpenArgs {
@@ -19,7 +20,8 @@ struct OpenArgs {
   password: String,
 }
 
-pub static DB_POOL: OnceLock<Arc<Mutex<Option<SqlitePool>>>> = OnceLock::new();
+pub static DB_POOL: LazyLock<Arc<RwLock<Option<SqlitePool>>>> =
+  LazyLock::new(|| Arc::new(RwLock::new(None)));
 
 #[tauri::command]
 async fn open_db_with_password(args: OpenArgs) -> Result<serde_json::Value, String> {
@@ -61,8 +63,10 @@ async fn open_db_with_password(args: OpenArgs) -> Result<serde_json::Value, Stri
     .map_err(|e| format!("Failed to create tables: {}", e))?;
 
   println!("Setting DB_POOL...");
-  let db_pool = Arc::new(Mutex::new(Some(pool)));
-  let _ = DB_POOL.set(db_pool);
+  {
+    let mut pool_guard = DB_POOL.write().await;
+    *pool_guard = Some(pool);
+  }
 
   println!("Database initialization successful!");
   Ok(serde_json::json!({ "success": true, "cipher_version": check }))
@@ -379,8 +383,8 @@ async fn delete_database(app_handle: tauri::AppHandle) -> Result<(), String> {
   use tauri::Manager;
 
   // Close and clear the database pool
-  if let Some(db_pool) = DB_POOL.get() {
-    let mut pool_guard = db_pool.lock().await;
+  {
+    let mut pool_guard = DB_POOL.write().await;
     if let Some(pool) = pool_guard.take() {
       pool.close().await;
     }

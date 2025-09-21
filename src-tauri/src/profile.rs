@@ -17,8 +17,7 @@ pub async fn add_income_source(
   employment_length: String,
   employer_contact: String,
 ) -> Result<(), String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   sqlx::query("INSERT INTO income_sources (source, employer_name, job_title, employment_length, employer_contact) VALUES (?, ?, ?, ?, ?)")
         .bind(source)
@@ -34,8 +33,7 @@ pub async fn add_income_source(
 
 #[tauri::command]
 pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let rows = sqlx::query(
     r#"
@@ -65,8 +63,7 @@ pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
 
 #[tauri::command]
 pub async fn delete_income_source(id: i64) -> Result<(), String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   sqlx::query("DELETE FROM monthly_income WHERE id = ?")
@@ -82,8 +79,7 @@ pub async fn delete_income_source(id: i64) -> Result<(), String> {
 // Monthly Income
 #[tauri::command]
 pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let rows = sqlx::query(
     r#"
@@ -108,8 +104,7 @@ pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
 
 #[tauri::command]
 pub async fn set_monthly_income(income: f64) -> Result<(), String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   sqlx::query("UPDATE monthly_income SET monthly_income = ? WHERE profile_id = 1")
@@ -125,8 +120,7 @@ pub async fn set_monthly_income(income: f64) -> Result<(), String> {
 // User Profile
 #[tauri::command]
 pub async fn get_user_profile() -> Result<Vec<String>, String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let rows = sqlx::query(
     r#"
@@ -172,8 +166,7 @@ pub async fn set_user_profile(
   job_title: String,
   annual_income: f64,
 ) -> Result<(), String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   sqlx::query("UPDATE user_profile SET name = ?, email = ?, phone = ?, address = ?, date_of_birth = ?, ssn = ?, marital_status = ?, dependents = ?, employment_status = ?, employer_name = ?, job_title = ?, annual_income = ? WHERE profile_id = 1")
         .bind(name)
@@ -199,8 +192,7 @@ pub async fn set_user_profile(
 // Additional Info
 #[tauri::command]
 pub async fn get_additional_info() -> Result<Vec<AdditionalInfoItem>, String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let rows = sqlx::query(
     r#"
@@ -228,8 +220,7 @@ pub async fn get_additional_info() -> Result<Vec<AdditionalInfoItem>, String> {
 //UPSERT
 #[tauri::command]
 pub async fn set_additional_info(id: Option<i64>, info: AdditionalInfoItem) -> Result<(), String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   if let Some(id) = id {
     // Update existing entry
@@ -256,8 +247,7 @@ pub async fn set_additional_info(id: Option<i64>, info: AdditionalInfoItem) -> R
 
 #[tauri::command]
 pub async fn delete_additional_info(id: i64) -> Result<(), String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   sqlx::query("DELETE FROM additional_info WHERE id = ?")

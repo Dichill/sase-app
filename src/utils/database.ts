@@ -203,6 +203,9 @@ export async function deleteDatabase(): Promise<void> {
 
         await invoke("delete_database");
         console.log("Database deleted successfully");
+
+        localStorage.removeItem("database_initialized");
+
         await handleLogout();
     } catch (error) {
         console.error("Failed to delete database:", error);
