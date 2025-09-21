@@ -93,9 +93,10 @@ const ListingPage = () => {
     setHasUnsavedChanges(value !== (listing.notes || ""));
   };
 
-  // JUSTIN ALL YOU!!! update to db
-  const handleSaveNotes = () => {
-    console.log("Saving notes:", notes);
+  // TEST: ALL YOU!!! update to db
+  const handleSaveNotes = async () => {
+    // console.log("Saving notes:", notes);
+    await invoke("set_listing_notes", { id: Number(params.id), notes });
     setHasUnsavedChanges(false);
   };
 

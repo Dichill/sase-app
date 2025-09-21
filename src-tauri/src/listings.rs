@@ -114,3 +114,21 @@ pub async fn get_listing_notes(listing_id: i64) -> Result<String, String> {
   let notes: String = row.try_get("notes").unwrap_or_default();
   Ok(notes)
 } 
+
+// Set/Update Notes for specified listing
+pub async fn set_listing_notes(listing_id: i64, notes: String) -> Result<(), String> {
+  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+
+  sqlx::query("UPDATE listings SET notes = ? WHERE id = ?")
+    .bind(&notes)
+    .bind(listing_id)
+    .execute(pool)
+    .await
+    .map_err(|e| format!("Failed to update notes: {}", e))?;
+
+    if result.rows_affected() == 0 {
+        return Err(format!("No listing found with id {}", id));
+    }
+
+  Ok(())
+}
