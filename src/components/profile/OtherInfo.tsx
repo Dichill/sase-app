@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, Fragment, useEffect } from "react";
 import {
   DescriptionDetails,
   DescriptionList,
@@ -18,105 +18,80 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface AdditionalInfo {
+interface AdditionalInfoItem {
   id: string;
   label: string;
   value: string;
   isEditing: boolean;
+  isNew?: boolean;
 }
 
-const createAdditionalInfo = (): AdditionalInfo => ({
-  id: Math.random().toString(36), // id logic?
+const createNewItem = (): AdditionalInfoItem => ({
+  id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
   label: "",
   value: "",
   isEditing: true,
+  isNew: true,
 });
 
 const AdditionalInfo: React.FC = () => {
-  const [additionalInfo, setAdditionalInfo] = useState<AdditionalInfo[]>([]);
-  const [editBuffer, setEditBuffer] = useState<
-    Partial<Record<string, { label: string; value: string }>>
-  >({});
+  const [items, setItems] = useState<AdditionalInfoItem[]>([]);
 
-  //do save logic
-  const saveAdditionalInfo = async (data: AdditionalInfo[]) => {
-    return new Promise<void>((resolve) => {
-      console.log("Saving additional info data", data);
-      setTimeout(() => {
-        resolve();
-      }, 300);
-    });
+  // Mock READ operation
+  useEffect(() => {
+    console.log("DATABASE READ: Fetching additional info on component mount.");
+  }, []);
+
+  const updateItem = (id: string, updates: Partial<AdditionalInfoItem>) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    );
   };
 
   const handleChange = (
     id: string,
-    field: keyof AdditionalInfo,
+    field: keyof AdditionalInfoItem,
     value: string
-  ): void => {
-    setAdditionalInfo((prev) =>
-      prev.map((info) => (info.id === id ? { ...info, [field]: value } : info))
-    );
+  ) => {
+    updateItem(id, { [field]: value });
   };
 
-  const addAdditionalInfo = () => {
-    setAdditionalInfo((prev) => [...prev, createAdditionalInfo()]);
+  const addItem = () => {
+    setItems((prev) => [...prev, createNewItem()]);
   };
 
-  const removeAdditionalInfo = (id: string) => {
-    setAdditionalInfo((prev) => prev.filter((item) => item.id !== id));
+  // Mock DELETE operation
+  const deleteItem = async (id: string) => {
+    console.log(`DATABASE DELETE: Deleting item with id: ${id}`);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    setItems((prev) => prev.filter((item) => item.id !== id));
+    console.log("DELETE successful.");
   };
 
-  const saveItem = (id: string) => {
-    setAdditionalInfo((prev) => {
-      const next = prev.map((info) =>
-        info.id === id ? { ...info, isEditing: false } : info
-      );
-      void saveAdditionalInfo(next);
-      return next;
-    });
-    setEditBuffer((buf) => {
-      const { [id]: _removed, ...rest } = buf;
-      return rest;
-    });
+  // Mock CREATE/UPDATE operation
+  const saveItem = async (id: string) => {
+    const item = items.find((i) => i.id === id);
+    if (!item || !item.label.trim() || !item.value.trim()) {
+      alert("Both Label and Value fields are required.");
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    updateItem(id, { isEditing: false, isNew: false });
   };
 
   const editItem = (id: string) => {
-    setAdditionalInfo((prev) => {
-      const current = prev.find((i) => i.id === id);
-      if (current) {
-        setEditBuffer((buf) => ({
-          ...buf,
-          [id]: { label: current.label, value: current.value },
-        }));
-      }
-      return prev.map((info) =>
-        info.id === id ? { ...info, isEditing: true } : info
-      );
-    });
+    updateItem(id, { isEditing: true });
   };
 
   const cancelEdit = (id: string) => {
-    setAdditionalInfo((prev) => {
-      const original = editBuffer[id];
-      if (!original) {
-        // Treat as a new unsaved row: remove it by id
-        return prev.filter((item) => item.id !== id);
-      }
-      return prev.map((info) =>
-        info.id === id
-          ? {
-              ...info,
-              label: original.label,
-              value: original.value,
-              isEditing: false,
-            }
-          : info
-      );
-    });
-    setEditBuffer((buf) => {
-      const { [id]: _removed, ...rest } = buf;
-      return rest;
-    });
+    const item = items.find((i) => i.id === id);
+    if (item?.isNew) {
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    } else {
+      updateItem(id, { isEditing: false });
+    }
   };
 
   return (
@@ -128,9 +103,7 @@ const AdditionalInfo: React.FC = () => {
           size="icon"
           variant="ghost"
           aria-label="Add other information"
-          onClick={() => {
-            addAdditionalInfo();
-          }}
+          onClick={addItem}
           className="cursor-pointer"
         >
           <Plus className="h-4 w-4" />
@@ -139,14 +112,14 @@ const AdditionalInfo: React.FC = () => {
 
       <div className="mt-4 space-y-4">
         <DescriptionList>
-          {additionalInfo
-            .filter((i) => !i.isEditing)
-            .map((info) => (
-              <Fragment key={info.id}>
-                <DescriptionTerm>{info.label}</DescriptionTerm>
+          {items
+            .filter((item) => !item.isEditing)
+            .map((item) => (
+              <Fragment key={item.id}>
+                <DescriptionTerm>{item.label}</DescriptionTerm>
                 <DescriptionDetails>
                   <div className="flex items-center justify-between gap-3">
-                    <span>{info.value}</span>
+                    <span>{item.value}</span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -165,7 +138,7 @@ const AdditionalInfo: React.FC = () => {
                         <DropdownMenuItem
                           onSelect={(e) => {
                             e.preventDefault();
-                            editItem(info.id);
+                            editItem(item.id);
                           }}
                         >
                           Edit
@@ -173,7 +146,7 @@ const AdditionalInfo: React.FC = () => {
                         <DropdownMenuItem
                           onSelect={(e) => {
                             e.preventDefault();
-                            removeAdditionalInfo(info.id);
+                            void deleteItem(item.id);
                           }}
                         >
                           Delete
@@ -186,27 +159,29 @@ const AdditionalInfo: React.FC = () => {
             ))}
         </DescriptionList>
 
-        {additionalInfo
-          .filter((i) => i.isEditing)
-          .map((info) => (
-            <div key={info.id} className="flex gap-4 w-full border-t pt-5">
+        {items
+          .filter((item) => item.isEditing)
+          .map((item) => (
+            <div key={item.id} className="flex gap-4 w-full border-t pt-5">
               <Input
                 type="text"
-                value={info.label}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  handleChange(info.id, "label", e.target.value);
+                value={item.label}
+                onChange={(e) => {
+                  handleChange(item.id, "label", e.target.value);
                 }}
                 placeholder="Label"
                 className="max-w-[24%]"
+                required
               />
               <Input
                 type="text"
-                value={info.value}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  handleChange(info.id, "value", e.target.value);
+                value={item.value}
+                onChange={(e) => {
+                  handleChange(item.id, "value", e.target.value);
                 }}
                 placeholder="Value"
                 className="max-w-[76%]"
+                required
               />
               <div className="flex gap-1">
                 <Button
@@ -215,9 +190,7 @@ const AdditionalInfo: React.FC = () => {
                   variant="outline"
                   className="cursor-pointer"
                   aria-label="Save"
-                  onClick={() => {
-                    saveItem(info.id);
-                  }}
+                  onClick={() => void saveItem(item.id)}
                 >
                   <Save className="h-4 w-4" />
                 </Button>
@@ -228,7 +201,7 @@ const AdditionalInfo: React.FC = () => {
                   className="cursor-pointer"
                   aria-label="Cancel"
                   onClick={() => {
-                    cancelEdit(info.id);
+                    cancelEdit(item.id);
                   }}
                 >
                   <X className="h-4 w-4" />

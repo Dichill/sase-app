@@ -281,6 +281,16 @@ struct Document {
   updated_at: Option<String>,
 }
 
+
+#[derive(Serialize, Deserialize)]
+struct IncomeSource {
+  source: String,
+  employer_name: String,
+  job_title: String,
+  employment_length: String,
+  employer_contact: String, 
+}
+
 #[derive(Serialize, Deserialize)]
 struct Checklist {
   id: Option<i64>,
@@ -429,6 +439,7 @@ fn some_command() {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .plugin(tauri_plugin_fs::init())
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_opener::init())
     .plugin(tauri_plugin_http::init())
@@ -441,6 +452,7 @@ pub fn run() {
       delete_database,
       get_database_info,
       profile::add_income_source,
+      profile::get_income_sources,
       listings::add_listing,
       listings::get_listings,
       document::get_documents,

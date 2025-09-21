@@ -1,5 +1,5 @@
 "use client";
-import { useState, Fragment } from "react";
+import { useState, Fragment, useEffect } from "react";
 import {
   DescriptionDetails,
   DescriptionList,
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Save, X, MoreVertical } from "lucide-react";
+import { Plus, Save, X, MoreVertical, Pencil } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,42 +35,67 @@ interface IncomeSource {
   employmentLength: string;
   employerContact: string;
   isEditing: boolean;
+  isNew?: boolean;
 }
 
-const createEmptyIncomeSource = (): IncomeSource => ({
-  id: Math.random().toString(36), //change to actual id logic?
+const createNewIncomeSource = (): IncomeSource => ({
+  id: `income_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
   source: "Employment",
   employerName: "",
   jobTitle: "",
   employmentLength: "",
   employerContact: "",
   isEditing: true,
+  isNew: true,
 });
 
 const IncomeSnapshot: React.FC = () => {
   const [monthlyIncome, setMonthlyIncome] = useState<number>(0);
   const [isEditingIncome, setIsEditingIncome] = useState<boolean>(false);
-  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]); // get: set income sources from database
-  const [editBuffer, setEditBuffer] = useState<
-    Partial<
-      Record<
-        string,
-        {
-          source: string;
-          employerName: string;
-          jobTitle: string;
-          employmentLength: string;
-          employerContact: string;
-        }
-      >
-    >
-  >({});
+  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
 
-  // get function
+  // Mock READ operation
+  useEffect(() => {
+    console.log("DATABASE READ: Fetching income data on component mount.");
+  }, []);
 
-  // delete from database function
+  const updateIncomeSource = (id: string, updates: Partial<IncomeSource>) => {
+    setIncomeSources((prev) =>
+      prev.map((source) =>
+        source.id === id ? { ...source, ...updates } : source
+      )
+    );
+  };
 
-  const saveIncomeSource = async (data: IncomeSource[]) => {
+  // // update function
+  // const getIncomeSource = async (id: string) => {
+  //   const source: IncomeSource = await invoke("get_income_source", { id });
+  //   setIncomeSources((prev) =>
+  //     prev.map((src) => (src.id === id ? source : src))
+  //   );
+  // }
+
+  const handleChange = (
+    id: string,
+    field: keyof IncomeSource,
+    value: string
+  ) => {
+    updateIncomeSource(id, { [field]: value });
+  };
+
+  const addIncomeSource = () => {
+    setIncomeSources((prev) => [...prev, createNewIncomeSource()]);
+  };
+
+  // Mock DELETE operation
+  const deleteIncomeSource = async (id: string) => {
+    console.log(`DATABASE DELETE: Deleting income source with id: ${id}`);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    setIncomeSources((prev) => prev.filter((source) => source.id !== id));
+    console.log("DELETE successful.");
+  };
+
+  const saveAllIncomeSources = async (data: IncomeSource[]) => {
     console.log("Saving income source data", data);
     for (const src of data) {
       await invoke("add_income_source", {
@@ -84,88 +109,49 @@ const IncomeSnapshot: React.FC = () => {
     }
   };
 
-  const handleChange = (
-    id: string,
-    field: keyof IncomeSource,
-    value: string
-  ) => {
-    setIncomeSources((prev) =>
-      prev.map((source) =>
-        source.id === id ? { ...source, [field]: value } : source
-      )
-    );
+  // CREATE/UPDATE operation for individual income source
+  const createIncomeSource = async (id: string) => {
+    const source = incomeSources.find((s) => s.id === id);
+    if (!source || !source.employerName.trim() || !source.jobTitle.trim()) {
+      alert("Employer Name and Job Title are required.");
+      return;
+    }
+
+    try {
+      await invoke("add_income_source", {
+        id: source.id,
+        source: source.source,
+        employerName: source.employerName,
+        jobTitle: source.jobTitle,
+        employmentLength: source.employmentLength,
+        employerContact: source.employerContact,
+      });
+
+      updateIncomeSource(id, { isEditing: false, isNew: false });
+    } catch (error) {
+      alert(`Failed to save income source. Please try again.`);
+    }
   };
 
-  const addIncomeSource = () => {
-    setIncomeSources((prev) => [...prev, createEmptyIncomeSource()]);
+  // Mock UPDATE operation for monthly income
+  const saveMonthlyIncome = async () => {
+    console.log("DATABASE UPDATE: Updating monthly income:", monthlyIncome);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    setIsEditingIncome(false);
+    console.log("Monthly income UPDATE successful.");
   };
 
-  const removeIncomeSource = (id: string) => {
-    setIncomeSources((prev) => prev.filter((source) => source.id !== id));
-  };
-
-  const saveItem = (id: string) => {
-    setIncomeSources((prev) => {
-      const next = prev.map((source) =>
-        source.id === id ? { ...source, isEditing: false } : source
-      );
-      void saveIncomeSource(next);
-      return next;
-    });
-    setEditBuffer((buf) => {
-      const { [id]: _removed, ...rest } = buf;
-      return rest;
-    });
-  };
-
-  const editItem = (id: string) => {
-    setIncomeSources((prev) => {
-      const current = prev.find((i) => i.id === id);
-      if (current) {
-        setEditBuffer((buf) => ({
-          ...buf,
-          [id]: {
-            source: current.source,
-            employerName: current.employerName,
-            jobTitle: current.jobTitle,
-            employmentLength: current.employmentLength,
-            employerContact: current.employerContact,
-          },
-        }));
-      }
-      return prev.map((source) =>
-        source.id === id ? { ...source, isEditing: true } : source
-      );
-    });
+  const editIncomeSource = (id: string) => {
+    updateIncomeSource(id, { isEditing: true });
   };
 
   const cancelEdit = (id: string) => {
-    setIncomeSources((prev) => {
-      const original = editBuffer[id];
-      if (!original) {
-        return prev.filter((source) => source.id !== id);
-      }
-      return prev.map((source) =>
-        source.id === id
-          ? {
-              ...source,
-              source: original.source as
-                | "Employment"
-                | "Self-Employed"
-                | "Other",
-              employerName: original.employerName,
-              jobTitle: original.jobTitle,
-              employmentLength: original.employmentLength,
-              employerContact: original.employerContact,
-              isEditing: false,
-            }
-          : source
-      );
-    });
-    setEditBuffer((buf) => {
-      const { [id]: _removed, ...rest } = buf;
-      return rest;
-    });
+    const source = incomeSources.find((s) => s.id === id);
+    if (source?.isNew) {
+      setIncomeSources((prev) => prev.filter((s) => s.id !== id));
+    } else {
+      updateIncomeSource(id, { isEditing: false });
+    }
   };
   // Frontend only component
   return (
@@ -198,7 +184,7 @@ const IncomeSnapshot: React.FC = () => {
                     className="cursor-pointer"
                     aria-label="Save"
                     onClick={() => {
-                      setIsEditingIncome(false);
+                      void saveMonthlyIncome();
                     }}
                   >
                     <Save className="h-4 w-4" />
@@ -220,45 +206,25 @@ const IncomeSnapshot: React.FC = () => {
             ) : (
               <div className="flex items-center justify-between gap-3">
                 <div>${monthlyIncome.toLocaleString()}</div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="cursor-pointer"
-                      aria-label="More actions"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        setIsEditingIncome(true);
-                      }}
-                    >
-                      Edit
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Pencil
+                  className="mr-2 h-4 w-4 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsEditingIncome(true);
+                  }}
+                />
               </div>
             )}
           </DescriptionDetails>
         </DescriptionList>
-        <div className="flex items-center justify-between border-b pb-3">
+        <div className="flex items-center justify-between border-b mb-1">
           <h4>Income Sources</h4>
           <Button
             type="button"
             size="icon"
             variant="ghost"
             aria-label="Add income source"
-            onClick={() => {
-              addIncomeSource();
-            }}
+            onClick={addIncomeSource}
             className="cursor-pointer"
           >
             <Plus className="h-4 w-4" />
@@ -298,7 +264,7 @@ const IncomeSnapshot: React.FC = () => {
                         <DropdownMenuItem
                           onSelect={(e) => {
                             e.preventDefault();
-                            editItem(income.id);
+                            editIncomeSource(income.id);
                           }}
                         >
                           Edit
@@ -306,7 +272,7 @@ const IncomeSnapshot: React.FC = () => {
                         <DropdownMenuItem
                           onSelect={(e) => {
                             e.preventDefault();
-                            removeIncomeSource(income.id);
+                            void deleteIncomeSource(income.id);
                           }}
                         >
                           Delete
@@ -322,7 +288,7 @@ const IncomeSnapshot: React.FC = () => {
         {incomeSources
           .filter((i) => i.isEditing)
           .map((income) => (
-            <div key={income.id} className="space-y-4 border-t pt-4">
+            <div key={income.id} className="space-y-4 border-b pt-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-sm font-medium mb-1 block">
@@ -423,7 +389,7 @@ const IncomeSnapshot: React.FC = () => {
                   className="cursor-pointer"
                   aria-label="Save"
                   onClick={() => {
-                    saveItem(income.id);
+                    void createIncomeSource(income.id);
                   }}
                 >
                   <Save className="h-4 w-4" />

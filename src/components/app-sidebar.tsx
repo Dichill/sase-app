@@ -1,26 +1,33 @@
 import * as React from "react";
+<<<<<<< HEAD
 import { ChevronRight, File, Folder, Settings, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+=======
+import { LogOut } from "lucide-react";
+>>>>>>> 3261ac5e606de1d8353f5ff9a10eb74c4b21fbb4
 
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarMenu,
-    SidebarMenuBadge,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarMenuSub,
-    SidebarRail,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarRail,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 
 import { navbar as data } from "@/data/navbar";
@@ -90,37 +97,3 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </Sidebar>
     );
 }
-
-// function Tree({ item }: { item: string | any[] }) {
-//   const [name, ...items] = Array.isArray(item) ? item : [item];
-
-//   if (!items.length) {
-//     return (
-//       <SidebarMenuButton className="data-[active=true]:bg-transparent">
-//         <File />
-//         {name}
-//       </SidebarMenuButton>
-//     );
-//   }
-
-//   return (
-//     <SidebarMenuItem>
-//       <Collapsible className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90">
-//         <CollapsibleTrigger asChild>
-//           <SidebarMenuButton>
-//             <ChevronRight className="transition-transform" />
-//             <Folder />
-//             {name}
-//           </SidebarMenuButton>
-//         </CollapsibleTrigger>
-//         <CollapsibleContent>
-//           <SidebarMenuSub>
-//             {items.map((subItem, index) => (
-//               <Tree key={index} item={subItem} />
-//             ))}
-//           </SidebarMenuSub>
-//         </CollapsibleContent>
-//       </Collapsible>
-//     </SidebarMenuItem>
-//   );
-// }

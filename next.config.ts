@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
         unoptimized: true,
     },
     distDir: "dist",
-    output: "export",
+    // output: "export", // Commented out for database integration
     trailingSlash: true,
     skipTrailingSlashRedirect: true,
 };
