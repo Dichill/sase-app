@@ -24,7 +24,7 @@ const Profile = () => {
                             <PersonalInfo
                                 user={{
                                     name: "Prince Charming",
-                                    dateOfBirth: new Date("1991-06-15"),
+                                    dateOfBirth: "1991-06-15",
 
                                     gender: "Male",
                                     address:
