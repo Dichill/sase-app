@@ -49,12 +49,15 @@ async fn open_db_with_password(args: OpenArgs) -> Result<serde_json::Value, Stri
     .await
     .map_err(|e| format!("cipher_version check failed: {}", e))?;
 
+  println!("Creating database tables...");
   create_tables(&pool)
     .await
     .map_err(|e| format!("Failed to create tables: {}", e))?;
 
+  println!("Setting DB_POOL...");
   let _ = DB_POOL.set(pool);
 
+  println!("Database initialization successful!");
   Ok(serde_json::json!({ "success": true, "cipher_version": check }))
 }
 
@@ -267,12 +270,25 @@ struct Checklist {
 /// Initialize database with user password
 #[tauri::command]
 async fn initialize_user_database(
+  app_handle: tauri::AppHandle,
   password: String,
 ) -> Result<serde_json::Value, String> {
-  let db_path = "sase.db";
+  use tauri::Manager;
+
+  let app_data_dir = app_handle
+    .path()
+    .app_data_dir()
+    .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+  std::fs::create_dir_all(&app_data_dir)
+    .map_err(|e| format!("Failed to create app data directory: {}", e))?;
+
+  let db_path = app_data_dir.join("sase.db");
+
+  println!("Database path: {:?}", db_path);
 
   let args = OpenArgs {
-    path: db_path.to_string(),
+    path: db_path.to_string_lossy().to_string(),
     password,
   };
 
@@ -282,6 +298,7 @@ async fn initialize_user_database(
 /// Add a new listing
 #[tauri::command]
 async fn add_listing(listing: Listing) -> Result<i64, String> {
+  println!("add_listing called with address: {}", listing.address);
   let pool = DB_POOL.get().ok_or("Database not initialized")?;
   let result = sqlx::query(
     r#"
@@ -324,6 +341,7 @@ async fn add_listing(listing: Listing) -> Result<i64, String> {
 /// Get all listings
 #[tauri::command]
 async fn get_listings() -> Result<Vec<Listing>, String> {
+  println!("get_listings called");
   let pool = DB_POOL.get().ok_or("Database not initialized")?;
 
   let rows = sqlx::query(
