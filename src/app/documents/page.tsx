@@ -121,8 +121,16 @@ const Documents = () => {
                             }))
                         );
                         setIsDragHover(false);
-                        setDroppedFiles(event.payload.paths);
-                        setIsModalOpen(true);
+
+                        if (
+                            event.payload.paths &&
+                            event.payload.paths.length > 0
+                        ) {
+                            setDroppedFiles(event.payload.paths);
+                            setIsModalOpen(true);
+                        } else {
+                            console.log("No files dropped, skipping modal");
+                        }
                     } else {
                         console.log("File drop cancelled");
                         setIsDragHover(false);
