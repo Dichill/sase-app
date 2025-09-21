@@ -24,10 +24,11 @@ import {
 
 import { navbar as data } from "@/data/navbar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import Link from "next/link";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return (
-        <Sidebar {...props}>
+        <Sidebar {...props} style={{ marginTop: "48px" }}>
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupLabel>General</SidebarGroupLabel>
@@ -36,10 +37,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             {data.general.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton asChild>
-                                        <a href={item.url}>
+                                        <Link href={item.url} prefetch>
                                             <item.icon />
                                             <span>{item.title}</span>
-                                        </a>
+                                        </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}

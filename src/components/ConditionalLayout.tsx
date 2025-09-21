@@ -18,12 +18,12 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
 
     if (shouldShowSidebar) {
         return (
-            <SidebarProvider>
+            <SidebarProvider className="flex-1">
                 <AppSidebar />
-                <main className="w-full">{children}</main>
+                <main className="flex-1 overflow-auto">{children}</main>
             </SidebarProvider>
         );
     }
 
-    return <main className="w-full">{children}</main>;
+    return <main className="flex-1 overflow-auto">{children}</main>;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -12,16 +13,17 @@ interface TitlebarProps {
     className?: string;
 }
 
-export async function Titlebar({
-    title = "DICHOPHSTIN",
+export function Titlebar({
     showControls = true,
     className = "",
 }: TitlebarProps) {
-    const appWindow = getCurrentWindow();
+    const [isMaximized, setIsMaximized] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const appWindow = getCurrentWindow() ?? null;
 
     return (
         <div
-            className={`titlebar flex items-center justify-between h-12 bg-background border-b border-border z-50 relative ${className}`}
+            className={`titlebar flex items-center justify-between h-12 bg-background border-b border-border z-50 relative w-full shrink-0 ${className}`}
         >
             <div
                 data-tauri-drag-region
@@ -54,7 +56,9 @@ export async function Titlebar({
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 hover:bg-muted/50 rounded-sm"
-                            onClick={() => appWindow.minimize()}
+                            onClick={() => {
+                                void appWindow.minimize();
+                            }}
                         >
                             <Minus className="h-3 w-3" />
                             <span className="sr-only">Minimize window</span>
@@ -64,15 +68,25 @@ export async function Titlebar({
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 hover:bg-muted/50 rounded-sm"
-                            onClick={() => appWindow.maximize()}
+                            onClick={() => {
+                                void (async () => {
+                                    if (isMaximized) {
+                                        await appWindow.unmaximize();
+                                        setIsMaximized(false);
+                                    } else {
+                                        await appWindow.maximize();
+                                        setIsMaximized(true);
+                                    }
+                                })();
+                            }}
                         >
-                            {(await appWindow.isMaximized()) ? (
+                            {isMaximized ? (
                                 <Minimize2 className="h-3 w-3" />
                             ) : (
                                 <Maximize2 className="h-3 w-3" />
                             )}
                             <span className="sr-only">
-                                {(await appWindow.isMaximized())
+                                {isMaximized
                                     ? "Restore window"
                                     : "Maximize window"}
                             </span>
@@ -83,7 +97,9 @@ export async function Titlebar({
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 hover:bg-red-500 hover:text-white rounded-sm ml-1 transition-colors duration-150"
-                            onClick={() => appWindow.close()}
+                            onClick={() => {
+                                void appWindow.close();
+                            }}
                         >
                             <X className="h-3 w-3" />
                             <span className="sr-only">Close window</span>
