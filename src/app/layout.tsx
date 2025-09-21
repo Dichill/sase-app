@@ -33,7 +33,7 @@ export default function RootLayout({
                 >
                     <div className="flex flex-col h-screen">
                         <Titlebar />
-                        <div className="flex flex-1 overflow-hidden">
+                        <div className="flex-1 overflow-hidden">
                             <DatabaseInitializer>
                                 <ConditionalLayout>
                                     {children}

@@ -5,10 +5,7 @@ import AdditionalInfo from "@/components/profile/OtherInfo";
 
 const Profile = () => {
     return (
-        <div
-            className="container mx-auto w-full"
-            style={{ marginTop: "48px", marginBottom: "64px" }}
-        >
+        <div className="container mx-auto py-15 w-full">
             <div className="flex justify-center gap-4">
                 <ProfileHeader
                     profilepic="/profilepic.png"
