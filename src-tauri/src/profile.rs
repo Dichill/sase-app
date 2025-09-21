@@ -4,6 +4,8 @@
 // Adjust the path as necessary
 use crate::IncomeSource;
 use crate::MonthlyIncome;
+use crate::Profile;
+use crate::AdditionalInfoItem;
 use crate::DB_POOL;
 use sqlx::Row;
 
@@ -146,6 +148,7 @@ pub async fn get_user_profile() -> Result<Vec<String>, String> {
   Ok(user_profile)
 }
 
+#[tauri::command]
 pub async fn set_user_profile(
   name: String,
   email: String,
@@ -181,6 +184,35 @@ pub async fn set_user_profile(
 }
 
 // End User Profile
+
+// Additional Info
+#[tauri::command]
+pub async fn get_additional_info() -> Result<Vec<AdditionalInfoItem>, String> {
+  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let rows = sqlx::query(
+    r#"
+        SELECT *
+        FROM income_sources
+        "#,
+  )
+  .fetch_all(pool)
+  .await
+  .map_err(|e| format!("Failed to fetch monthly incomes: {}", e))?;
+
+  let mut additional_info = Vec::new();
+  for row in rows {
+    additional_info.push(AdditionalInfoItem {
+      id: row.try_get("id").unwrap_or_default(),
+      title: row.try_get("title").unwrap_or_default(),
+      description: row.try_get("description").unwrap_or_default(),
+      icon: row.try_get("icon").unwrap_or_default(),
+    });
+  }
+
+  Ok(additional_info)
+}
+
+// End Additional Info
 
 
 

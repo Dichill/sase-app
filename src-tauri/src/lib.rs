@@ -184,6 +184,20 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
   .execute(pool)
   .await?;
 
+  // AdditionalInfo table
+  sqlx::query(
+    r#"
+    CREATE TABLE IF NOT EXISTS additional_info (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL
+    )
+    "#,
+  )
+  .execute(pool)
+  .await?;
+
   // Create triggers to update the updated_at column
   sqlx::query(
     r#"
@@ -320,6 +334,14 @@ struct Checklist {
   updated_at: Option<String>,
 }
 
+#[derive(Serialize, Deserialize)]
+struct AdditionalInfoItem {
+  id: String,
+  title: String,
+  description: String,
+  icon: String,
+}
+
 /// Initialize database with user password
 #[tauri::command]
 async fn initialize_user_database(
@@ -386,6 +408,8 @@ pub fn run() {
       profile::get_monthly_income,
       profile::set_monthly_income,
       profile::get_user_profile,
+      profile::set_user_profile,
+      profile::get_additional_info,
       listings::add_listing,
       listings::get_listings,
       document::fetch_documents,

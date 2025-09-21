@@ -17,6 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { get } from "http";
+import { invoke } from "@tauri-apps/api/core";
 
 interface AdditionalInfoItem {
   id: string;
@@ -37,10 +39,20 @@ const createNewItem = (): AdditionalInfoItem => ({
 const AdditionalInfo: React.FC = () => {
   const [items, setItems] = useState<AdditionalInfoItem[]>([]);
 
-  // Mock READ operation; get additional info from db
+  // TEST: READ operation; get additional info from db
   useEffect(() => {
-    console.log("DATABASE READ: Fetching additional info on component mount.");
+    // console.log("DATABASE READ: Fetching additional info on component mount.");
+    getAdditionalInfo();
   }, []);
+
+  const getAdditionalInfo = async () => {
+    try {
+      const info: AdditionalInfoItem[] = await invoke("get_additional_info");
+      setItems(info);
+    } catch (error) {
+      console.error("Failed to fetch additional info:", error);
+    }
+  }
 
   const updateItem = (id: string, updates: Partial<AdditionalInfoItem>) => {
     setItems((prev) =>
