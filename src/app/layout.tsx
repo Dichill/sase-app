@@ -1,34 +1,48 @@
-"use client";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/globals.css";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { DatabaseInitializer } from "@/components/DatabaseInitializer";
+import { ConditionalLayout } from "../components/ConditionalLayout";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Titlebar } from "@/components/titlebar";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+    variable: "--font-geist-sans",
+    subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+    variable: "--font-geist-mono",
+    subsets: ["latin"],
 });
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <SidebarProvider>
-          <AppSidebar />
-          <main className="w-full">{children}</main>
-        </SidebarProvider>
-      </body>
-    </html>
-  );
+    return (
+        <html lang="en" suppressHydrationWarning>
+            <body
+                className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+            >
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    <div className="flex flex-col h-screen">
+                        <Titlebar />
+                        <div className="flex flex-1 overflow-hidden">
+                            <DatabaseInitializer>
+                                <ConditionalLayout>
+                                    {children}
+                                </ConditionalLayout>
+                            </DatabaseInitializer>
+                        </div>
+                    </div>
+                </ThemeProvider>
+            </body>
+        </html>
+    );
 }

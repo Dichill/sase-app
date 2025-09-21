@@ -25,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { invoke } from "@tauri-apps/api/core";
 
 interface IncomeSource {
   id: string;
@@ -49,7 +50,7 @@ const createEmptyIncomeSource = (): IncomeSource => ({
 const IncomeSnapshot: React.FC = () => {
   const [monthlyIncome, setMonthlyIncome] = useState<number>(0);
   const [isEditingIncome, setIsEditingIncome] = useState<boolean>(false);
-  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
+  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]); // get: set income sources from database
   const [editBuffer, setEditBuffer] = useState<
     Partial<
       Record<
@@ -65,14 +66,22 @@ const IncomeSnapshot: React.FC = () => {
     >
   >({});
 
-  //save to database (replace all this!!)
+  // get function
+
+  // delete from database function
+
   const saveIncomeSource = async (data: IncomeSource[]) => {
-    return new Promise<void>((resolve) => {
-      console.log("Saving income source data", data);
-      setTimeout(() => {
-        resolve();
-      }, 300);
-    });
+    console.log("Saving income source data", data);
+    for (const src of data) {
+      await invoke("add_income_source", {
+        id: src.id,
+        source: src.source,
+        employerName: src.employerName,
+        jobTitle: src.jobTitle,
+        employmentLength: src.employmentLength,
+        employerContact: src.employerContact,
+      });
+    }
   };
 
   const handleChange = (
@@ -158,7 +167,7 @@ const IncomeSnapshot: React.FC = () => {
       return rest;
     });
   };
-
+  // Frontend only component
   return (
     <div className="rounded-lg border px-4 py-6">
       <div className="flex items-center justify-between border-b pb-3">

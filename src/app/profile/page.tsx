@@ -6,7 +6,10 @@ import ProfileDocuments from "@/components/profile/ProfileDocuments";
 
 const Profile = () => {
   return (
-    <div className="container mx-auto py-15 w-full px-10">
+    <div
+      className="container mx-auto w-full px-10"
+      style={{ marginTop: "48px", marginBottom: "64px" }}
+    >
       <div className="flex justify-center gap-4">
         <ProfileHeader
           profilepic="/profilepic.png"
