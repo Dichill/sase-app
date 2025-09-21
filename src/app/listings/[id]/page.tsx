@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { invoke } from "@tauri-apps/api/core";
 
 const ListingPage = () => {
   const params = useParams();
@@ -71,20 +72,31 @@ const ListingPage = () => {
     return null;
   };
 
-  // JUSTIN ALL YOU!!! reading
+  
   useEffect(() => {
     setNotes(listing.notes || "");
-    // getNotes();
+    getNotes(listing.notes || "");
   }, [listing.notes]);
+
+  // TEST: ALL YOU!!! reading
+  const getNotes = async (notes: string) => {
+    try {
+      const dbNotes: string = await invoke("get_listing_notes", { notes }); 
+      setNotes(dbNotes); 
+    } catch (error) {
+      console.error("Failed to load notes", error);
+    }
+  };
 
   const handleNotesChange = (value: string) => {
     setNotes(value);
     setHasUnsavedChanges(value !== (listing.notes || ""));
   };
 
-  // JUSTIN ALL YOU!!! update to db
-  const handleSaveNotes = () => {
-    console.log("Saving notes:", notes);
+  // TEST: ALL YOU!!! update to db
+  const handleSaveNotes = async () => {
+    // console.log("Saving notes:", notes);
+    await invoke("set_listing_notes", { id: Number(params.id), notes });
     setHasUnsavedChanges(false);
   };
 

@@ -72,15 +72,15 @@ const AdditionalInfo: React.FC = () => {
     setItems((prev) => [...prev, createNewItem()]);
   };
 
-  // Mock DELETE operation from db
+  // TEST: DELETE operation from db
   const deleteItem = async (id: string) => {
     console.log(`DATABASE DELETE: Deleting item with id: ${id}`);
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await invoke("delete_additional_info", { id: Number(id) });
     setItems((prev) => prev.filter((item) => item.id !== id));
     console.log("DELETE successful.");
   };
 
-  // Mock CREATE/UPDATE operation from db
+  // TEST: UPSERT (CREATE/UPDATE) operation from db
   const saveItem = async (id: string) => {
     const item = items.find((i) => i.id === id);
     if (!item || !item.label.trim() || !item.value.trim()) {
@@ -88,9 +88,18 @@ const AdditionalInfo: React.FC = () => {
       return;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    const numId = Number(id);
 
-    updateItem(id, { isEditing: false, isNew: false });
+    try {
+      const updated: boolean = await invoke ("set_additional_info", { id: numId, info: item, });
+      if (!updated) {
+        await invoke("set_additional_info", { info: item, });
+      }
+      updateItem(id, { isEditing: false, isNew: false });
+    } catch (error) {
+      await invoke("add_additional_info", { info: item, });
+      updateItem(id, { isEditing: false, isNew: false });
+    }
   };
 
   const editItem = (id: string) => {
