@@ -99,3 +99,18 @@ pub async fn get_listings() -> Result<Vec<Listing>, String> {
 
   Ok(listings)
 }
+
+// Get Notes for specified listing
+#[tauri::command]
+pub async fn get_listing_notes(listing_id: i64) -> Result<String, String> {
+  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+
+  let row = sqlx::query("SELECT notes FROM listings WHERE id = ?")
+    .bind(listing_id)
+    .fetch_one(pool)
+    .await
+    .map_err(|e| format!("Failed to fetch notes: {}", e))?;
+
+  let notes: String = row.try_get("notes").unwrap_or_default();
+  Ok(notes)
+} 
