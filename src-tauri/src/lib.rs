@@ -410,6 +410,7 @@ pub fn run() {
       profile::get_user_profile,
       profile::set_user_profile,
       profile::get_additional_info,
+      profile::set_additional_info,
       listings::add_listing,
       listings::get_listings,
       document::fetch_documents,

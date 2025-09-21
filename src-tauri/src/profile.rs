@@ -102,7 +102,7 @@ pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
 }
 
 #[tauri::command]
-pub async fn set_monthly_income(income: f64) -> Result<(), String> {
+pub async fn set_monthly_income(income: f64) -> Result<(), String> { // TODO: why float 64?
   let pool = DB_POOL.get().ok_or("Database not initialized")?;
 
   sqlx::query("UPDATE monthly_income SET monthly_income = ? WHERE profile_id = 1")
@@ -210,6 +210,33 @@ pub async fn get_additional_info() -> Result<Vec<AdditionalInfoItem>, String> {
   }
 
   Ok(additional_info)
+}
+
+//UPSERT
+#[tauri::command]
+pub async fn set_additional_info(id: Option<i64>, info: AdditionalInfoItem) -> Result<(), String> {
+  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  if let Some(id) = id {
+    // Update existing entry
+    sqlx::query("UPDATE additional_info SET title = ?, description = ?, icon = ? WHERE id = ?")
+      .bind(&info.title)
+      .bind(&info.description)
+      .bind(&info.icon)
+      .bind(id)
+      .execute(pool)
+      .await
+      .map_err(|e| format!("Failed to update entry: {}", e))?;
+  } else {
+    // Insert new entry
+    sqlx::query("INSERT INTO additional_info (title, description, icon) VALUES (?, ?, ?)")
+      .bind(&info.title)
+      .bind(&info.description)
+      .bind(&info.icon)
+      .execute(pool)
+      .await
+      .map_err(|e| format!("Failed to insert entry: {}", e))?;
+  }
+  Ok(())
 }
 
 // End Additional Info

@@ -80,7 +80,7 @@ const AdditionalInfo: React.FC = () => {
     console.log("DELETE successful.");
   };
 
-  // Mock CREATE/UPDATE operation from db
+  // TEST: UPSERT (CREATE/UPDATE) operation from db
   const saveItem = async (id: string) => {
     const item = items.find((i) => i.id === id);
     if (!item || !item.label.trim() || !item.value.trim()) {
@@ -88,9 +88,18 @@ const AdditionalInfo: React.FC = () => {
       return;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    const numId = Number(id);
 
-    updateItem(id, { isEditing: false, isNew: false });
+    try {
+      const updated: boolean = await invoke ("set_additional_info", { id: numId, info: item, });
+      if (!updated) {
+        await invoke("set_additional_info", { info: item, });
+      }
+      updateItem(id, { isEditing: false, isNew: false });
+    } catch (error) {
+      await invoke("add_additional_info", { info: item, });
+      updateItem(id, { isEditing: false, isNew: false });
+    }
   };
 
   const editItem = (id: string) => {
