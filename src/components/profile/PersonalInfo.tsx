@@ -15,6 +15,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Pencil, Save, X } from "lucide-react";
+import { ca } from "zod/v4/locales";
+import { invoke } from "@tauri-apps/api/core";
+import { get } from "http";
 
 interface UserProfile {
   name: string;
@@ -34,10 +37,18 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [originalUser, setOriginalUser] = useState<UserProfile>(initialUser);
 
-  // Mock READ operation
+  // TEST: READ operation; get profile from db
   useEffect(() => {
-    console.log("DATABASE READ: Fetching user profile on component mount.");
+    getUserProfile();
   }, []);
+
+  const getUserProfile = async () => {
+    try {
+      const profile: UserProfile[] = await invoke("get_user_profile");
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+    }
+  }
 
   // Helper function to format date for input field (YYYY-MM-DD)
   const formatDateForInput = (dateString: string): string => {
@@ -78,7 +89,7 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
     setUser((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Mock UPDATE operation
+  // TEST: UPDATE operation, save changes to profile to db
   const saveProfile = async () => {
     console.log("DATABASE UPDATE: Updating user profile:", user);
 
@@ -89,8 +100,8 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
     }
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
+      // await new Promise((resolve) => setTimeout(resolve, 300));
+      await invoke("set_user_profile", { profile: user });
       setOriginalUser(user);
       setIsEditing(false);
       console.log("Profile UPDATE successful.");
@@ -100,6 +111,7 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
     }
   };
 
+  
   const startEditing = () => {
     setOriginalUser(user);
     setIsEditing(true);

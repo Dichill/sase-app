@@ -71,9 +71,10 @@ const ListingPage = () => {
     return null;
   };
 
-  // JUSTIN ALL YOU!!!
+  // JUSTIN ALL YOU!!! reading
   useEffect(() => {
     setNotes(listing.notes || "");
+    // getNotes();
   }, [listing.notes]);
 
   const handleNotesChange = (value: string) => {
@@ -81,7 +82,7 @@ const ListingPage = () => {
     setHasUnsavedChanges(value !== (listing.notes || ""));
   };
 
-  // JUSTIN ALL YOU!!!
+  // JUSTIN ALL YOU!!! update to db
   const handleSaveNotes = () => {
     console.log("Saving notes:", notes);
     setHasUnsavedChanges(false);
@@ -102,7 +103,7 @@ const ListingPage = () => {
     );
 
     if (confirmDelete) {
-      // TODO: Implement actual delete logic here
+      // TODO: Implement actual delete logic here; delete listing from db
       console.log("Deleting listing:", params.id);
       alert("Listing deleted successfully!");
       router.push("/listings"); // Navigate back to listings page

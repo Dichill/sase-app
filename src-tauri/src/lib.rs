@@ -128,11 +128,26 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     r#"
     CREATE TABLE IF NOT EXISTS income_sources (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER,
         source TEXT NOT NULL,
         employer_name TEXT,
         job_title TEXT,
         employment_length TEXT,
         employer_contact TEXT
+        FOREIGN KEY(profile_id) REFERENCES profile(id)
+    )
+    "#,
+  )
+  .execute(pool)
+  .await?;
+
+  // Create Monthly Income table
+  sqlx::query(
+    r#"
+    CREATE TABLE IF NOT EXISTS monthly_income (
+      profile_id INTEGER PRIMARY KEY,
+      monthly_income INTEGER,
+      FOREIGN KEY(profile_id) REFERENCES profile(id)
     )
     "#,
   )
@@ -167,6 +182,20 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
       reminder_date DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    "#,
+  )
+  .execute(pool)
+  .await?;
+
+  // AdditionalInfo table
+  sqlx::query(
+    r#"
+    CREATE TABLE IF NOT EXISTS additional_info (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL
     )
     "#,
   )
@@ -283,11 +312,19 @@ struct Document {
 
 #[derive(Serialize, Deserialize)]
 struct IncomeSource {
+  id: Option<i64>,
+  profile_id: Option<i64>,
   source: String,
   employer_name: String,
   job_title: String,
   employment_length: String,
   employer_contact: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct MonthlyIncome {
+  profile_id: Option<i64>,
+  monthly_income: f64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -299,6 +336,14 @@ struct Checklist {
   reminder_date: Option<String>,
   created_at: Option<String>,
   updated_at: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct AdditionalInfoItem {
+  id: String,
+  title: String,
+  description: String,
+  icon: String,
 }
 
 /// Initialize database with user password
@@ -452,6 +497,12 @@ pub fn run() {
       get_database_info,
       profile::add_income_source,
       profile::get_income_sources,
+      profile::delete_income_source,
+      profile::get_monthly_income,
+      profile::set_monthly_income,
+      profile::get_user_profile,
+      profile::set_user_profile,
+      profile::get_additional_info,
       listings::add_listing,
       listings::get_listings,
       document::get_documents,

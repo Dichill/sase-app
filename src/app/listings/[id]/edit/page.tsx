@@ -109,7 +109,7 @@ const EditListing = () => {
   const onSubmit: SubmitHandler<FormData> = (values) => {
     // Update the listing with the form values
     console.log("Updating listing:", listingId, values);
-    // TODO: Implement actual update logic here
+    // TODO: Implement actual update logic here; update listing in db
     // For now, just log the values and navigate back
     alert("Listing updated successfully!");
     router.push(`/listings/${listingId}`);

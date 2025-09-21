@@ -26,6 +26,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { invoke } from "@tauri-apps/api/core";
+import { get } from "http";
+import { set } from "zod";
 
 interface IncomeSource {
   id: string;
@@ -54,9 +56,9 @@ const IncomeSnapshot: React.FC = () => {
   const [isEditingIncome, setIsEditingIncome] = useState<boolean>(false);
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
 
-  // Mock READ operation
   useEffect(() => {
-    console.log("DATABASE READ: Fetching income data on component mount.");
+    getIncomeSources();
+    getMonthlyIncome();
   }, []);
 
   const updateIncomeSource = (id: string, updates: Partial<IncomeSource>) => {
@@ -67,13 +69,23 @@ const IncomeSnapshot: React.FC = () => {
     );
   };
 
-  // // update function
-  // const getIncomeSource = async (id: string) => {
-  //   const source: IncomeSource = await invoke("get_income_source", { id });
-  //   setIncomeSources((prev) =>
-  //     prev.map((src) => (src.id === id ? source : src))
-  //   );
-  // }
+  const getIncomeSources = async () => {
+    try {
+      const sources: IncomeSource[] = await invoke("get_income_sources");
+      setIncomeSources(sources);
+    } catch (error) {
+      console.error("Failed to fetch income sources:", error);
+    }
+  }
+
+  const getMonthlyIncome = async () => {
+    try {
+      const income: number = await invoke("get_monthly_income");
+      setMonthlyIncome(income);
+    } catch (error) {
+      console.error("Failed to fetch monthly income:", error);
+    }
+  }
 
   const handleChange = (
     id: string,
@@ -87,13 +99,13 @@ const IncomeSnapshot: React.FC = () => {
     setIncomeSources((prev) => [...prev, createNewIncomeSource()]);
   };
 
-  // Mock DELETE operation
+  // @zoph db stores income source id as an integer, but your struct builds on it being a string
+  // I just casted it in case you had some reason for it being a string
+  // Cannot test yet until saving function is fixed
+  // TEST: DELETE operation for individual income source in db
   const deleteIncomeSource = async (id: string) => {
-    console.log(`DATABASE DELETE: Deleting income source with id: ${id}`);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    setIncomeSources((prev) => prev.filter((source) => source.id !== id));
-    console.log("DELETE successful.");
-  };
+    await invoke("delete_income_source", { id: parseInt(id, 10) });
+  }
 
   const saveAllIncomeSources = async (data: IncomeSource[]) => {
     console.log("Saving income source data", data);
@@ -133,12 +145,14 @@ const IncomeSnapshot: React.FC = () => {
     }
   };
 
-  // Mock UPDATE operation for monthly income
+  // TEST: UPDATE operation for monthly income in db
   const saveMonthlyIncome = async () => {
-    console.log("DATABASE UPDATE: Updating monthly income:", monthlyIncome);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    setIsEditingIncome(false);
-    console.log("Monthly income UPDATE successful.");
+    try {
+      await invoke("set_monthly_income", { income: monthlyIncome });
+      setIsEditingIncome(false);
+    } catch (error) {
+      alert("Failed to save monthly income. Please try again.");
+    }
   };
 
   const editIncomeSource = (id: string) => {

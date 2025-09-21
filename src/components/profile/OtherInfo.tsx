@@ -17,6 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { get } from "http";
+import { invoke } from "@tauri-apps/api/core";
 
 interface AdditionalInfoItem {
   id: string;
@@ -37,10 +39,20 @@ const createNewItem = (): AdditionalInfoItem => ({
 const AdditionalInfo: React.FC = () => {
   const [items, setItems] = useState<AdditionalInfoItem[]>([]);
 
-  // Mock READ operation
+  // TEST: READ operation; get additional info from db
   useEffect(() => {
-    console.log("DATABASE READ: Fetching additional info on component mount.");
+    // console.log("DATABASE READ: Fetching additional info on component mount.");
+    getAdditionalInfo();
   }, []);
+
+  const getAdditionalInfo = async () => {
+    try {
+      const info: AdditionalInfoItem[] = await invoke("get_additional_info");
+      setItems(info);
+    } catch (error) {
+      console.error("Failed to fetch additional info:", error);
+    }
+  }
 
   const updateItem = (id: string, updates: Partial<AdditionalInfoItem>) => {
     setItems((prev) =>
@@ -60,7 +72,7 @@ const AdditionalInfo: React.FC = () => {
     setItems((prev) => [...prev, createNewItem()]);
   };
 
-  // Mock DELETE operation
+  // Mock DELETE operation from db
   const deleteItem = async (id: string) => {
     console.log(`DATABASE DELETE: Deleting item with id: ${id}`);
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -68,7 +80,7 @@ const AdditionalInfo: React.FC = () => {
     console.log("DELETE successful.");
   };
 
-  // Mock CREATE/UPDATE operation
+  // Mock CREATE/UPDATE operation from db
   const saveItem = async (id: string) => {
     const item = items.find((i) => i.id === id);
     if (!item || !item.label.trim() || !item.value.trim()) {
