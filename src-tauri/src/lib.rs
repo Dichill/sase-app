@@ -1,4 +1,5 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+mod profile;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
@@ -13,7 +14,7 @@ struct OpenArgs {
   password: String,
 }
 
-static DB_POOL: OnceCell<SqlitePool> = OnceCell::const_new();
+pub static DB_POOL: OnceCell<SqlitePool> = OnceCell::const_new();
 
 #[tauri::command]
 async fn open_db_with_password(args: OpenArgs) -> Result<serde_json::Value, String> {
@@ -107,6 +108,22 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
       address TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    "#,
+  )
+  .execute(pool)
+  .await?;
+
+  // Create Income Source table
+  sqlx::query(
+    r#"
+    CREATE TABLE IF NOT EXISTS income_sources (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL,
+        employer_name TEXT,
+        job_title TEXT,
+        employment_length TEXT,
+        employer_contact TEXT
     )
     "#,
   )
