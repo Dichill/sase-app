@@ -69,12 +69,10 @@ const IncomeSnapshot: React.FC = () => {
   // get function
 
   // update function  
-  const getIncomeSource = async (id: string) => {
-    const source: IncomeSource = await invoke("get_income_source", { id });
-    setIncomeSources((prev) =>
-      prev.map((src) => (src.id === id ? source : src))
-    );
-  }
+  const getIncomeSources = async () => {
+    const sources: IncomeSource[] = await invoke("get_income_sources");
+    setIncomeSources(sources);
+  };
 
   // delete from database function
 
