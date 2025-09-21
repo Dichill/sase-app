@@ -415,6 +415,7 @@ pub fn run() {
       listings::add_listing,
       listings::get_listings,
       listings::get_listing_notes,
+      listings::set_listing_notes,
       document::fetch_documents,
       document::add_document
     ])

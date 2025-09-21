@@ -119,7 +119,7 @@ pub async fn get_listing_notes(listing_id: i64) -> Result<String, String> {
 pub async fn set_listing_notes(listing_id: i64, notes: String) -> Result<(), String> {
   let pool = DB_POOL.get().ok_or("Database not initialized")?;
 
-  sqlx::query("UPDATE listings SET notes = ? WHERE id = ?")
+  let result = sqlx::query("UPDATE listings SET notes = ? WHERE id = ?")
     .bind(&notes)
     .bind(listing_id)
     .execute(pool)
@@ -127,7 +127,7 @@ pub async fn set_listing_notes(listing_id: i64, notes: String) -> Result<(), Str
     .map_err(|e| format!("Failed to update notes: {}", e))?;
 
     if result.rows_affected() == 0 {
-        return Err(format!("No listing found with id {}", id));
+        return Err(format!("No listing found with id {}", listing_id));
     }
 
   Ok(())
