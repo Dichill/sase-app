@@ -1,4 +1,4 @@
-// import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 
 
-// invoke('some_command');
+invoke('some_command');
