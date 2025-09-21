@@ -385,6 +385,7 @@ pub fn run() {
       profile::delete_income_source,
       profile::get_monthly_income,
       profile::set_monthly_income,
+      profile::get_user_profile,
       listings::add_listing,
       listings::get_listings,
       document::fetch_documents,

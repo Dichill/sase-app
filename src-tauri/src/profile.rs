@@ -114,6 +114,41 @@ pub async fn set_monthly_income(income: f64) -> Result<(), String> {
 }
 // End Monthly Income
 
+// User Profile
+#[tauri::command]
+pub async fn get_user_profile() -> Result<Vec<String>, String> {
+  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let rows = sqlx::query(
+    r#"
+        SELECT *
+        FROM user_profile
+        "#,
+  )
+  .fetch_all(pool)
+  .await
+  .map_err(|e| format!("Failed to fetch user profile: {}", e))?;
+
+  let mut user_profile = Vec::new();
+  for row in rows {
+    user_profile.push(row.try_get("name").unwrap_or_default());
+    user_profile.push(row.try_get("email").unwrap_or_default());
+    user_profile.push(row.try_get("phone").unwrap_or_default());
+    user_profile.push(row.try_get("address").unwrap_or_default());
+    user_profile.push(row.try_get("date_of_birth").unwrap_or_default());
+    user_profile.push(row.try_get("ssn").unwrap_or_default());
+    user_profile.push(row.try_get("marital_status").unwrap_or_default());
+    user_profile.push(row.try_get("dependents").unwrap_or_default());
+    user_profile.push(row.try_get("employment_status").unwrap_or_default());
+    user_profile.push(row.try_get("employer_name").unwrap_or_default());
+    user_profile.push(row.try_get("job_title").unwrap_or_default());
+    user_profile.push(row.try_get("annual_income").unwrap_or_default());
+  }
+
+  Ok(user_profile)
+}
+
+// End User Profile
+
 
 
 
