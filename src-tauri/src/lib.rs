@@ -119,6 +119,7 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
       phone TEXT,
       email TEXT,
       address TEXT,
+      monthly_income INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -146,17 +147,17 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
   .await?;
 
   // Create Monthly Income table
-  sqlx::query(
-    r#"
-    CREATE TABLE IF NOT EXISTS monthly_income (
-      profile_id INTEGER PRIMARY KEY,
-      monthly_income INTEGER,
-      FOREIGN KEY(profile_id) REFERENCES profile(id)
-    )
-    "#,
-  )
-  .execute(pool)
-  .await?;
+  // sqlx::query(
+  //   r#"
+  //   CREATE TABLE IF NOT EXISTS monthly_income (
+  //     profile_id INTEGER PRIMARY KEY,
+  //     monthly_income INTEGER,
+  //     FOREIGN KEY(profile_id) REFERENCES profile(id)
+  //   )
+  //   "#,
+  // )
+  // .execute(pool)
+  // .await?;
 
   // Create Documents table
   sqlx::query(
@@ -201,6 +202,16 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
       description TEXT NOT NULL,
       icon TEXT NOT NULL
     )
+    "#,
+  )
+  .execute(pool)
+  .await?;
+
+  // Insert a default profile if none exists
+  sqlx::query(
+    r#"
+    INSERT OR IGNORE INTO profile (id, fullname, date_of_birth, gender, phone, email, address, monthly_income)
+    VALUES (1, '', '', '', '', '', '', 0)
     "#,
   )
   .execute(pool)
@@ -325,11 +336,11 @@ struct IncomeSource {
   employer_contact: String,
 }
 
-#[derive(Serialize, Deserialize)]
-struct MonthlyIncome {
-  profile_id: Option<i64>,
-  monthly_income: f64,
-}
+// #[derive(Serialize, Deserialize)]
+// struct MonthlyIncome {
+//   profile_id: Option<i64>,
+//   monthly_income: f64,
+// }
 
 #[derive(Serialize, Deserialize)]
 struct Checklist {

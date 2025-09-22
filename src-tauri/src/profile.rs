@@ -4,7 +4,7 @@
 // Adjust the path as necessary
 use crate::AdditionalInfoItem;
 use crate::IncomeSource;
-use crate::MonthlyIncome;
+// use crate::MonthlyIncome;
 use crate::DB_POOL;
 use sqlx::Row;
 
@@ -78,36 +78,37 @@ pub async fn delete_income_source(id: i64) -> Result<(), String> {
 
 // Monthly Income
 #[tauri::command]
-pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
-  let pool_guard = DB_POOL.read().await;
-  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
-  let rows = sqlx::query(
-    r#"
-        SELECT *
-        FROM monthly_income
-        "#,
-  )
-  .fetch_all(pool)
-  .await
-  .map_err(|e| format!("Failed to fetch documents: {}", e))?;
+pub async fn get_monthly_income(profile_id: i64) -> Result<Option<i64>, String> {
+    let pool_guard = DB_POOL.read().await;
+    let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
-  let mut monthly_income = Vec::new();
-  for row in rows {
-    monthly_income.push(MonthlyIncome {
-      profile_id: row.try_get("profile_id").unwrap_or_default(),
-      monthly_income: row.try_get("monthly_income").unwrap_or_default(),
-    });
-  }
+    let row = sqlx::query("SELECT monthly_income FROM profile WHERE id = ?")
+        .bind(profile_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| format!("Failed to fetch monthly income: {}", e))?;
 
-  Ok(monthly_income)
+    if let Some(row) = row {
+        // If the column is REAL/NUMERIC, prefer this (propagates conversion errors):
+        let val: Option<i64> = row.try_get::<Option<i64>, _>("monthly_income")
+            .map_err(|e| format!("Type/column error reading monthly_income: {}", e))?;
+
+        // Debug log to verify the raw value you read
+        println!("get_monthly_income: profile_id={}, monthly_income={:?}", profile_id, val);
+
+        Ok(val)
+    } else {
+        println!("get_monthly_income: no row for profile_id={}", profile_id);
+        Ok(None)
+    }
 }
 
 #[tauri::command]
-pub async fn set_monthly_income(income: f64) -> Result<(), String> {
+pub async fn set_monthly_income(income: i64) -> Result<(), String> {
   let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
-  sqlx::query("UPDATE monthly_income SET monthly_income = ? WHERE profile_id = 1")
+  sqlx::query("UPDATE profile SET monthly_income = ? WHERE id = 1")
     .bind(income)
     .execute(pool)
     .await
@@ -125,7 +126,7 @@ pub async fn get_user_profile() -> Result<Vec<String>, String> {
   let rows = sqlx::query(
     r#"
         SELECT *
-        FROM user_profile
+        FROM profile
         "#,
   )
   .fetch_all(pool)
