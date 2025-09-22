@@ -209,8 +209,8 @@ pub async fn get_additional_info() -> Result<Vec<AdditionalInfoItem>, String> {
   for row in rows {
     additional_info.push(AdditionalInfoItem {
       id: row.try_get("id").unwrap_or_default(),
-      title: row.try_get("title").unwrap_or_default(),
-      description: row.try_get("description").unwrap_or_default(),
+      label: row.try_get("label").unwrap_or_default(),
+      value: row.try_get("value").unwrap_or_default(),
       icon: row.try_get("icon").unwrap_or_default(),
     });
   }
@@ -226,8 +226,8 @@ pub async fn set_additional_info(id: Option<i64>, info: AdditionalInfoItem) -> R
   if let Some(id) = id {
     // Update existing entry
     sqlx::query("UPDATE additional_info SET title = ?, description = ?, icon = ? WHERE id = ?")
-      .bind(&info.title)
-      .bind(&info.description)
+      .bind(&info.label)
+      .bind(&info.value)
       .bind(&info.icon)
       .bind(id)
       .execute(pool)
@@ -236,8 +236,8 @@ pub async fn set_additional_info(id: Option<i64>, info: AdditionalInfoItem) -> R
   } else {
     // Insert new entry
     sqlx::query("INSERT INTO additional_info (title, description, icon) VALUES (?, ?, ?)")
-      .bind(&info.title)
-      .bind(&info.description)
+      .bind(&info.label)
+      .bind(&info.value)
       .bind(&info.icon)
       .execute(pool)
       .await

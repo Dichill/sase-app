@@ -167,7 +167,7 @@ const IncomeSnapshot: React.FC = () => {
     }
   };
 
-  // TEST: UPDATE operation for monthly income in db
+  // FIXED: UPDATE operation for monthly income in db
   const saveMonthlyIncome = async () => {
     try {
       await invoke("set_monthly_income", { income: monthlyIncome });

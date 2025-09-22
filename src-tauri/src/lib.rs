@@ -197,10 +197,10 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
   sqlx::query(
     r#"
     CREATE TABLE IF NOT EXISTS additional_info (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL,
-      icon TEXT NOT NULL
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      label TEXT NOT NULL,
+      value TEXT NOT NULL,
+      icon TEXT 
     )
     "#,
   )
@@ -356,9 +356,9 @@ struct Checklist {
 #[derive(Serialize, Deserialize)]
 struct AdditionalInfoItem {
   id: String,
-  title: String,
-  description: String,
-  icon: String,
+  label: String,
+  value: String,
+  icon: Option<String>,
 }
 
 /// Initialize database with user password
