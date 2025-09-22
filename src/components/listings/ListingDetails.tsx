@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,15 +21,14 @@ import {
     Mail,
     LandPlot,
     MapPin,
-    ArrowRight,
     BookUser,
     Save,
     X,
     SquareArrowOutUpRightIcon,
     MoreVertical,
-    CheckCircle2Icon,
     FileText,
     Download,
+    ArrowLeft,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -39,12 +38,15 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { invoke } from "@tauri-apps/api/core";
 
-const ListingPage = () => {
+interface ListingDetailsProps {
+    listingId: number;
+}
+
+const ListingDetails: React.FC<ListingDetailsProps> = ({ listingId }) => {
     const { isDatabaseInitialized } = useDatabaseContextSafe();
-    const params = useParams();
     const router = useRouter();
     const [listing, setListing] = useState<Listing | null>(null);
     const [loading, setLoading] = useState(true);
@@ -67,13 +69,6 @@ const ListingPage = () => {
             }
 
             try {
-                const listingId = Number(params.id);
-                if (isNaN(listingId)) {
-                    setError("Invalid listing ID");
-                    setLoading(false);
-                    return;
-                }
-
                 const fetchedListing = await getListing(listingId);
                 setListing(fetchedListing);
                 setNotes(fetchedListing.notes ?? "");
@@ -108,7 +103,7 @@ const ListingPage = () => {
 
         void fetchListing();
         void fetchDocuments();
-    }, [params.id, isDatabaseInitialized]);
+    }, [listingId, isDatabaseInitialized]);
 
     // Filter referenced documents when listing or documents change
     useEffect(() => {
@@ -241,14 +236,15 @@ const ListingPage = () => {
                     <h1 className="text-2xl font-bold mb-4">
                         {error ?? "Listing not found"}
                     </h1>
-                    <button
+                    <Button
                         onClick={() => {
                             router.push("/listings");
                         }}
-                        className="text-blue-600 hover:underline"
+                        variant="outline"
                     >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
                         Back to listings
-                    </button>
+                    </Button>
                 </div>
             </div>
         );
@@ -288,30 +284,14 @@ const ListingPage = () => {
         return null;
     };
 
-    // Notes are now set when listing is fetched
-
-    // TEST: ALL YOU!!! reading
-    const getNotes = async () => {
-        try {
-            const dbNotes: string = await invoke("get_listing_notes", {
-                listingId: Number(params.id),
-            });
-            setNotes(dbNotes);
-        } catch (error) {
-            console.error("Failed to load notes", error);
-        }
-    };
-
     const handleNotesChange = (value: string) => {
         setNotes(value);
         setHasUnsavedChanges(value !== (listing.notes ?? ""));
     };
 
-    // TEST: ALL YOU!!! update to db
     const handleSaveNotes = async () => {
-        // console.log("Saving notes:", notes);
         await invoke("set_listing_notes", {
-            listingId: Number(params.id),
+            listingId: listingId,
             notes,
         });
         setHasUnsavedChanges(false);
@@ -323,7 +303,7 @@ const ListingPage = () => {
     };
 
     const handleEdit = () => {
-        router.push(`/listings/${params.id as string}/edit`);
+        router.push(`/listings?id=${listingId}&edit=true`);
     };
 
     const handleDelete = async () => {
@@ -332,20 +312,27 @@ const ListingPage = () => {
         );
 
         if (confirmDelete) {
-            // TEST: Implement actual delete logic here; delete listing from db
-            console.log("Deleting listing:", params.id);
-            await invoke("delete_listing", { id: Number(params.id) });
-            <Alert>
-                <CheckCircle2Icon />
-                <AlertTitle>Listing deleted successfully!</AlertTitle>
-            </Alert>;
-            router.push("/listings"); // Navigate back to listings page
+            console.log("Deleting listing:", listingId);
+            await invoke("delete_listing", { id: listingId });
+            router.push("/listings");
         }
     };
 
     return (
         <div className="h-full overflow-y-auto">
             <div className="container mx-auto p-12">
+                <div className="flex items-center gap-4 mb-6">
+                    <Button
+                        // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+                        onClick={() => router.push("/listings")}
+                        variant="outline"
+                        size="icon"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <h1 className="text-3xl font-bold">Listing Details</h1>
+                </div>
+
                 <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                         <h1 className="text-4xl font-bold">
@@ -570,122 +557,129 @@ const ListingPage = () => {
 
                     {/* Right Column */}
                     <div className="space-y-4">
-                        <div className="bg-gray-50 p-6 rounded-lg">
-                            <h3 className="font-semibold text-lg mb-2">
-                                Leasing Information
-                            </h3>
-
-                            <div className="space-y-1">
-                                {listing.housing_type && (
-                                    <div className="px-4 flex">
-                                        <h3 className="font-medium text-gray-600 mb-2 flex-1 text-sm">
-                                            Housing Type:
-                                        </h3>
-                                        <p className="flex-1 text-sm">
-                                            {listing.housing_type}
-                                        </p>
-                                    </div>
-                                )}
-
-                                {listing.lease_type && (
-                                    <div className="px-4 flex">
-                                        <h3 className="font-medium text-gray-600 mb-2 flex-1 text-sm">
-                                            Lease Type:
-                                        </h3>
-                                        <p className="flex-1 text-sm">
-                                            {listing.lease_type}
-                                        </p>
-                                    </div>
-                                )}
-
-                                {listing.credit_score_min && (
-                                    <div className="px-4 flex">
-                                        <h3 className="font-medium text-gray-600 mb-2 flex-1 text-sm">
-                                            Minimum Credit Score:
-                                        </h3>
-                                        <p className="flex-1 text-sm">
-                                            {listing.credit_score_min}+
-                                        </p>
-                                    </div>
-                                )}
-
-                                {listing.minimum_income && (
-                                    <div className="px-4 flex">
-                                        <h3 className="font-medium text-gray-600 mb-2 flex-1 text-sm    ">
-                                            Minimum Income:
-                                        </h3>
-                                        <p className="flex-1 text-sm">
-                                            $
-                                            {listing.minimum_income.toLocaleString()}
-                                            /month
-                                        </p>
-                                    </div>
-                                )}
-
-                                {listing.pet_policy && (
-                                    <div className="px-4 flex">
-                                        <h3 className="font-medium text-gray-600 mb-2 flex-1 text-sm">
-                                            Pet Policy:
-                                        </h3>
-                                        <p className="flex-1 text-sm">
-                                            {listing.pet_policy}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="bg-gray-50 p-6 rounded-lg">
-                            <h4 className="font-semibold text-lg mb-2">
-                                Features
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mx-4">
-                                {listing.amenities && (
-                                    <div>
-                                        <h3 className="font-medium text-gray-600 mb-2">
-                                            Amenities
-                                        </h3>
-                                        <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
-                                            {listing.amenities
-                                                .split(", ")
-                                                .map((amenity, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="flex items-center gap-2"
-                                                    >
-                                                        <ArrowRight className="w-4 h-4 flex-shrink-0 text-gray-600" />
-                                                        <span className="py-1 text-sm">
-                                                            {amenity}
-                                                        </span>
-                                                    </div>
-                                                ))}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">
+                                    Leasing Information
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-1">
+                                    {listing.housing_type && (
+                                        <div className="flex">
+                                            <h3 className="font-medium text-muted-foreground mb-2 flex-1 text-sm">
+                                                Housing Type:
+                                            </h3>
+                                            <p className="flex-1 text-sm">
+                                                {listing.housing_type}
+                                            </p>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {listing.utilities && (
-                                    <div>
-                                        <h3 className="font-medium text-gray-600 mb-2">
-                                            Utilities
-                                        </h3>
-                                        <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
-                                            {listing.utilities
-                                                .split(", ")
-                                                .map((utility, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="flex items-center gap-2"
-                                                    >
-                                                        <ArrowRight className="w-4 h-4 flex-shrink-0 text-gray-600" />
-                                                        <span className="py-1 text-sm">
-                                                            {utility}
-                                                        </span>
-                                                    </div>
-                                                ))}
+                                    {listing.lease_type && (
+                                        <div className="flex">
+                                            <h3 className="font-medium text-muted-foreground mb-2 flex-1 text-sm">
+                                                Lease Type:
+                                            </h3>
+                                            <p className="flex-1 text-sm">
+                                                {listing.lease_type}
+                                            </p>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                                    )}
+
+                                    {listing.credit_score_min && (
+                                        <div className="flex">
+                                            <h3 className="font-medium text-muted-foreground mb-2 flex-1 text-sm">
+                                                Minimum Credit Score:
+                                            </h3>
+                                            <p className="flex-1 text-sm">
+                                                {listing.credit_score_min}+
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {listing.minimum_income && (
+                                        <div className="flex">
+                                            <h3 className="font-medium text-muted-foreground mb-2 flex-1 text-sm">
+                                                Minimum Income:
+                                            </h3>
+                                            <p className="flex-1 text-sm">
+                                                $
+                                                {listing.minimum_income.toLocaleString()}
+                                                /month
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {listing.pet_policy && (
+                                        <div className="flex">
+                                            <h3 className="font-medium text-muted-foreground mb-2 flex-1 text-sm">
+                                                Pet Policy:
+                                            </h3>
+                                            <p className="flex-1 text-sm">
+                                                {listing.pet_policy}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">
+                                    Features
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {listing.amenities && (
+                                        <div>
+                                            <h3 className="font-medium text-muted-foreground mb-2">
+                                                Amenities
+                                            </h3>
+                                            <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
+                                                {listing.amenities
+                                                    .split(", ")
+                                                    .map((amenity, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <div className="w-2 h-2 bg-muted-foreground rounded-full flex-shrink-0" />
+                                                            <span className="py-1 text-sm">
+                                                                {amenity}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {listing.utilities && (
+                                        <div>
+                                            <h3 className="font-medium text-muted-foreground mb-2">
+                                                Utilities
+                                            </h3>
+                                            <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
+                                                {listing.utilities
+                                                    .split(", ")
+                                                    .map((utility, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <div className="w-2 h-2 bg-muted-foreground rounded-full flex-shrink-0" />
+                                                            <span className="py-1 text-sm">
+                                                                {utility}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </div>
@@ -693,4 +687,4 @@ const ListingPage = () => {
     );
 };
 
-export default ListingPage;
+export default ListingDetails;

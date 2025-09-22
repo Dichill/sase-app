@@ -3,6 +3,9 @@ import { Bed, Bath, MapPin, Star, Phone, Mail, Tag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toggleListingFavorite } from "@/utils/database";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 interface ListingCardProps {
     id: string;
@@ -75,7 +78,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
     };
 
     const handleClick = (e: React.MouseEvent) => {
-        router.push(`/listings/${id}`);
+        router.push(`/listings?id=${id}`);
     };
 
     const handleFavoriteClick = async (e: React.MouseEvent) => {
@@ -113,21 +116,25 @@ const ListingCard: React.FC<ListingCardProps> = ({
     };
 
     return (
-        <div
-            className="min-w-fit max-w-md bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+        <Card
+            className="w-full max-w-md hover:shadow-lg transition-shadow duration-200 cursor-pointer"
             onClick={handleClick}
         >
-            <div className="min-w-0">
+            <CardHeader className="pb-4">
                 {/* Header with title and favorite button */}
-                <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-xl font-semibold text-gray-900 flex-1 min-w-0">
+                <div className="flex items-start justify-between">
+                    <h3 className="text-xl font-semibold flex-1 min-w-0">
                         {parseAddress(address)?.street}
                     </h3>
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => void handleFavoriteClick(e)}
                         disabled={isUpdatingFavorite}
-                        className={`ml-2 p-1 rounded-full cursor-pointer transition-colors duration-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 ${
-                            isFavorited ? "text-yellow-500" : "text-gray-400"
+                        className={`ml-2 h-8 w-8 p-0 flex-shrink-0 ${
+                            isFavorited
+                                ? "text-yellow-500 hover:text-yellow-600"
+                                : "text-muted-foreground hover:text-foreground"
                         }`}
                         aria-label={
                             isFavorited
@@ -140,68 +147,72 @@ const ListingCard: React.FC<ListingCardProps> = ({
                                 isFavorited ? "fill-current" : ""
                             } ${isUpdatingFavorite ? "animate-pulse" : ""}`}
                         />
-                    </button>
+                    </Button>
                 </div>
 
                 {/* City */}
-                <div className="flex items-center gap-2 mb-4">
-                    <MapPin className="w-4 h-4 flex-shrink-0" />
-                    <p className="text-gray-600">
+                <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                    <p className="text-muted-foreground">
                         {parseAddress(address)?.city},{" "}
                         {parseAddress(address)?.state}
                     </p>
                 </div>
+            </CardHeader>
 
+            <CardContent className="pt-0">
                 {/* Details and Cost */}
                 <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                        <h4 className="text-gray-600 text-sm mb-2">Details</h4>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                            Details
+                        </h4>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-1">
-                                <p className="text-gray-900 font-semibold">
+                                <span className="font-semibold">
                                     {bedrooms}
-                                </p>
-                                <Bed className="w-4 h-4" />
+                                </span>
+                                <Bed className="w-4 h-4 text-muted-foreground" />
                             </div>
                             <div className="flex items-center gap-1">
-                                <p className="text-gray-900 font-semibold">
+                                <span className="font-semibold">
                                     {bathrooms}
-                                </p>
-                                <Bath className="w-4 h-4" />
+                                </span>
+                                <Bath className="w-4 h-4 text-muted-foreground" />
                             </div>
                         </div>
                     </div>
                     <div className="text-right">
-                        <h4 className="text-gray-600 text-sm mb-2">Cost</h4>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                            Cost
+                        </h4>
                         <div className="flex items-center gap-2">
-                            <Tag className="w-4 h-4" />
-                            <p className="text-gray-900 font-semibold">
+                            <Tag className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-semibold">
                                 ${formatRent(cost)}
-                            </p>
+                            </span>
                         </div>
                     </div>
                 </div>
 
                 {/* Separator */}
-                <div className="border-t border-gray-200 my-4"></div>
+                <Separator className="my-4" />
 
                 {/* Contact Information */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 flex-shrink-0" />
-                        <p className="text-gray-900 font-medium truncate">
+                        <Phone className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                        <span className="font-medium truncate">
                             {phoneNumber}
-                        </p>
+                        </span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 flex-shrink-0" />
-                        <p className="text-gray-900 font-medium truncate">
-                            {email}
-                        </p>
+                        <Mail className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                        <span className="font-medium truncate">{email}</span>
                     </div>
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 };
 

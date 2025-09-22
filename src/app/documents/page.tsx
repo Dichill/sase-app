@@ -190,6 +190,8 @@ const Documents = () => {
                         : undefined,
                 mime_type: mimeType,
                 data: data,
+                description: "",
+                is_completed: false,
             };
 
             await addDocument(documentData);

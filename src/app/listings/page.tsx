@@ -1,83 +1,42 @@
 "use client";
-import { useState } from "react";
-import ListingList from "@/components/listings/ListingList";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Heart, List } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import ListingDetails from "@/components/listings/ListingDetails";
+import ListingEdit from "@/components/listings/ListingEdit";
+import ListingsList from "@/components/listings/ListingsList";
+
+// Main component that handles routing based on search params
+const ListingsPageContent = () => {
+    const searchParams = useSearchParams();
+    const listingId = searchParams.get("id");
+    const isEdit = searchParams.get("edit") === "true";
+
+    if (listingId) {
+        const id = parseInt(listingId, 10);
+        if (!Number.isNaN(id)) {
+            if (isEdit) {
+                return <ListingEdit listingId={id} />;
+            }
+            return <ListingDetails listingId={id} />;
+        }
+    }
+
+    return <ListingsList />;
+};
 
 const Listings = () => {
-    const router = useRouter();
-    const [activeTab, setActiveTab] = useState("all");
-
-    const handleAddListing = () => {
-        router.push("/listings/create");
-    };
-
     return (
-        <div className="h-full overflow-y-auto">
-            <div
-                className="container mx-auto w-full px-10 justify-between"
-                style={{ marginTop: "48px" }}
-            >
-                <div className="mb-8 flex items-start justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">
-                            Listings
-                        </h1>
-                        <p className="text-muted-foreground mt-2">
-                            Manage your listings and properties
-                        </p>
+        <Suspense
+            fallback={
+                <div className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                        <h1 className="text-2xl font-bold mb-4">Loading...</h1>
                     </div>
-                    <Button
-                        onClick={handleAddListing}
-                        variant="secondary"
-                        className="cursor-pointer"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Listing
-                    </Button>
                 </div>
-
-                <Tabs
-                    value={activeTab}
-                    onValueChange={setActiveTab}
-                    className="w-full"
-                >
-                    <TabsList className="grid w-full max-w-md grid-cols-2">
-                        <TabsTrigger
-                            value="all"
-                            className="flex items-center gap-2"
-                        >
-                            <List className="w-4 h-4" />
-                            All Listings
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="favorites"
-                            className="flex items-center gap-2"
-                        >
-                            <Heart className="w-4 h-4" />
-                            Favorites
-                        </TabsTrigger>
-                    </TabsList>
-
-                    <div className="mt-6">
-                        <TabsContent value="all" className="mt-0">
-                            <ListingList
-                                showFavoritesOnly={false}
-                                sortByFavorites={true}
-                            />
-                        </TabsContent>
-                        <TabsContent value="favorites" className="mt-0">
-                            <ListingList
-                                showFavoritesOnly={true}
-                                sortByFavorites={false}
-                            />
-                        </TabsContent>
-                    </div>
-                </Tabs>
-            </div>
-        </div>
+            }
+        >
+            <ListingsPageContent />
+        </Suspense>
     );
 };
 

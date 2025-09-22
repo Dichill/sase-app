@@ -2,8 +2,8 @@
 
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { invoke } from "@tauri-apps/api/core";
-import router from "next/router";
 import { createClient } from "./supabase/client";
+import { CheckedState } from "@radix-ui/react-checkbox";
 
 export interface Listing {
     id?: number;
@@ -47,6 +47,8 @@ export interface Profile {
 }
 
 export interface Document {
+    description: any;
+    is_completed: CheckedState | undefined;
     id?: number;
     name: string;
     document_type: string;

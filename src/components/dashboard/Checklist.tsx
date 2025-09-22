@@ -41,6 +41,9 @@ import {
     type Checklist as ChecklistType,
 } from "../../utils/database";
 import { useDatabaseContextSafe } from "../DatabaseInitializer";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Reference {
     id: string;
@@ -309,24 +312,24 @@ const Checklist = () => {
 
     if (loading || !isDatabaseInitialized) {
         return (
-            <div className="w-full">
-                <div className="rounded-lg border px-4 py-6">
+            <Card className="w-full">
+                <CardContent className="pt-6">
                     <div className="flex items-center justify-center py-8">
-                        <div className="text-gray-500">
+                        <div className="text-muted-foreground">
                             {!isDatabaseInitialized
                                 ? "Initializing database..."
                                 : "Loading checklists..."}
                         </div>
                     </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
         );
     }
 
     return (
-        <div className="w-full">
-            <div className="rounded-lg border px-4 py-6">
-                <div className="flex items-center justify-between border-b pb-3 mb-4">
+        <Card className="w-full">
+            <CardHeader>
+                <div className="flex items-center justify-between">
                     <h2 className="text-lg font-medium">Checklist</h2>
                     <Button
                         onClick={() => setIsAddingTask(!isAddingTask)}
@@ -337,68 +340,76 @@ const Checklist = () => {
                         Add Task
                     </Button>
                 </div>
+            </CardHeader>
 
+            <CardContent>
                 {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
-                        <div className="text-red-800 text-sm">{error}</div>
+                    <Alert variant="destructive" className="mb-4">
+                        <AlertDescription>{error}</AlertDescription>
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setError(null)}
-                            className="mt-2 text-red-600 hover:text-red-800"
+                            className="mt-2"
                         >
                             Dismiss
                         </Button>
-                    </div>
+                    </Alert>
                 )}
 
                 {isAddingTask && (
-                    <div className="space-y-3 p-4 bg-gray-50 rounded-lg mb-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="taskName">Task Name</Label>
-                            <Input
-                                id="taskName"
-                                value={newTaskName}
-                                onChange={(e) => setNewTaskName(e.target.value)}
-                                placeholder="Enter task name"
-                                className="h-8"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="taskDate">
-                                Due Date (optional)
-                            </Label>
-                            <Input
-                                id="taskDate"
-                                type="date"
-                                value={newTaskDate}
-                                onChange={(e) => setNewTaskDate(e.target.value)}
-                                className="h-8"
-                            />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                    setIsAddingTask(false);
-                                    setNewTaskName("");
-                                    setNewTaskDate("");
-                                }}
-                            >
-                                Cancel
-                            </Button>
-                            <Button size="sm" onClick={addNewTask}>
-                                <Check className="w-4 h-4 mr-1" />
-                                Add Task
-                            </Button>
-                        </div>
-                    </div>
+                    <Card className="mb-4">
+                        <CardContent className="pt-4 space-y-3">
+                            <div className="grid gap-2">
+                                <Label htmlFor="taskName">Task Name</Label>
+                                <Input
+                                    id="taskName"
+                                    value={newTaskName}
+                                    onChange={(e) =>
+                                        setNewTaskName(e.target.value)
+                                    }
+                                    placeholder="Enter task name"
+                                    className="h-8"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="taskDate">
+                                    Due Date (optional)
+                                </Label>
+                                <Input
+                                    id="taskDate"
+                                    type="date"
+                                    value={newTaskDate}
+                                    onChange={(e) =>
+                                        setNewTaskDate(e.target.value)
+                                    }
+                                    className="h-8"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setIsAddingTask(false);
+                                        setNewTaskName("");
+                                        setNewTaskDate("");
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button size="sm" onClick={addNewTask}>
+                                    <Check className="w-4 h-4 mr-1" />
+                                    Add Task
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 )}
 
                 <div className="space-y-4">
                     {tasks.length === 0 && !isAddingTask ? (
-                        <div className="text-center py-8 text-gray-500">
+                        <div className="text-center py-8 text-muted-foreground">
                             <div className="mb-2">No tasks yet</div>
                             <Button
                                 onClick={() => setIsAddingTask(true)}
@@ -412,31 +423,26 @@ const Checklist = () => {
                         </div>
                     ) : (
                         tasks.map((task) => (
-                            <div
-                                key={task.id}
-                                className="border rounded-lg p-4"
-                            >
+                            <Card key={task.id} className="p-4">
                                 <div className="flex items-center gap-3">
-                                    <input
-                                        type="checkbox"
+                                    <Checkbox
                                         checked={task.completed}
-                                        onChange={() => {
+                                        onCheckedChange={() => {
                                             void toggleTaskCompletion(task.id);
                                         }}
-                                        className="w-4 h-4 rounded"
                                     />
                                     <div className="flex-1">
                                         <span
                                             className={`font-medium ${
                                                 task.completed
-                                                    ? "line-through text-gray-500"
-                                                    : "text-gray-900"
+                                                    ? "line-through text-muted-foreground"
+                                                    : ""
                                             }`}
                                         >
                                             {task.title}
                                         </span>
                                         {task.dueDate && (
-                                            <span className="text-sm text-gray-500 ml-2">
+                                            <span className="text-sm text-muted-foreground ml-2">
                                                 (Due: {task.dueDate})
                                             </span>
                                         )}
@@ -682,12 +688,12 @@ const Checklist = () => {
                                         </div>
                                     </CollapsibleContent>
                                 </Collapsible>
-                            </div>
+                            </Card>
                         ))
                     )}
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 };
 

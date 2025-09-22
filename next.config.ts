@@ -2,16 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
     reactStrictMode: true,
-    turbo: {
-        devOverlay: false,
-    },
+    output: "export",
     images: {
         unoptimized: true,
     },
-    distDir: "dist",
-    // output: "export", // Commented out for database integration
-    trailingSlash: true,
-    skipTrailingSlashRedirect: true,
+    distDir: "out",
 };
 
 export default nextConfig;
