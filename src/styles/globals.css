@@ -121,6 +121,37 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    image-rendering: crisp-edges;
+  }
+
+  [data-slot="dialog-content"],
+  [data-slot="dialog-overlay"] {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    image-rendering: crisp-edges;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  [data-slot="dialog-content"] {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+}
+
+@layer components {
+  [data-sonner-toast] {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  [data-sonner-toast] [data-description] {
+    color: hsl(var(--foreground)) !important;
+    opacity: 0.8 !important;
   }
 }
 

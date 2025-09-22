@@ -2,11 +2,21 @@
 import ListingCard from "./ListingCard";
 import { listingData } from "@/data/listingData";
 import FavoriteListingCarousel from "../dashboard/ListingCarousel";
+import { Listing } from "@/utils/database";
+import { invoke } from "@tauri-apps/api/core";
 
 const listings = listingData;
 
 const ListingList = () => {
-  //GET /listings (PLS JUSTIN U GOT ME RIGHT?!) get listings from db, return array of listings
+  //TEST: GET /listings (PLS JUSTIN U GOT ME RIGHT?!) get listings from db, return array of listings
+
+  let fetchListings = async () => {
+    try {
+      const allListings: Listing[] = await invoke("get_listings");
+    } catch (error) {
+      console.error("Failed to fetch listings:", error);
+    }
+  };
 
   return (
     <div className="w-full max-w-full space-y-6">

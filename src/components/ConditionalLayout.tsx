@@ -22,9 +22,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
         <div className="flex h-full min-h-0 w-screen">
           <AppSidebar />
           <main className="flex-1 min-w-0 overflow-auto w-full">
-            <div className="w-full h-full p-4">
-              {children}
-            </div>
+            <div className="w-full h-full p-4">{children}</div>
           </main>
         </div>
       </SidebarProvider>

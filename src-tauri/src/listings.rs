@@ -6,7 +6,8 @@ use sqlx::Row;
 #[tauri::command]
 pub async fn add_listing(listing: Listing) -> Result<i64, String> {
   println!("add_listing called with address: {}", listing.address);
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = DB_POOL.read().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
   let result = sqlx::query(
     r#"
     INSERT INTO listings (
@@ -49,7 +50,8 @@ pub async fn add_listing(listing: Listing) -> Result<i64, String> {
 #[tauri::command]
 pub async fn get_listings() -> Result<Vec<Listing>, String> {
   println!("get_listings called");
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = DB_POOL.read().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let rows = sqlx::query(
     r#"
@@ -96,14 +98,120 @@ pub async fn get_listings() -> Result<Vec<Listing>, String> {
       updated_at: row.try_get("updated_at").ok(),
     });
   }
-
   Ok(listings)
+}
+
+#[tauri::command]
+pub async fn delete_listing(id: i64) -> Result<(), String> {
+  let pool_guard = DB_POOL.read().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
+
+  let result = sqlx::query("DELETE FROM listings WHERE id = ?")
+    .bind(id)
+    .execute(pool)
+    .await
+    .map_err(|e| format!("Failed to delete listing: {}", e))?;
+
+  if result.rows_affected() == 0 {
+    return Err(format!("No listing found with id {}", id));
+  }
+
+  Ok(())
+}
+
+#[tauri::command]
+pub async fn update_listing(
+  id: i64,
+  address: String,
+  contact_email: Option<String>,
+  contact_phone: Option<String>,
+  contact_other: Option<String>,
+  source_link: String,
+  price_rent: f64,
+  housing_type: Option<String>,
+  lease_type: Option<String>,
+  upfront_fees: Option<f64>,
+  utilities: Option<String>,
+  credit_score_min: Option<i32>,
+  minimum_income: Option<f64>,
+  references_required: Option<bool>,
+  bedrooms: Option<i32>,
+  bathrooms: Option<i32>,
+  square_footage: Option<i32>,
+  layout_description: Option<String>,
+  amenities: Option<String>,
+  pet_policy: Option<String>,
+  furnishing: Option<String>,
+  notes: Option<String>,
+) -> Result<(), String> {
+  let pool_guard = DB_POOL.read().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
+
+  let result = sqlx::query(
+    r#"
+    UPDATE listings
+    SET 
+      address = ?, 
+      contact_email = ?, 
+      contact_phone = ?, 
+      contact_other = ?, 
+      source_link = ?, 
+      price_rent = ?, 
+      housing_type = ?, 
+      lease_type = ?, 
+      upfront_fees = ?, 
+      utilities = ?, 
+      credit_score_min = ?, 
+      minimum_income = ?, 
+      references_required = ?, 
+      bedrooms = ?, 
+      bathrooms = ?, 
+      square_footage = ?, 
+      layout_description = ?, 
+      amenities = ?, 
+      pet_policy = ?, 
+      furnishing = ?, 
+      notes = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+    "#,
+  )
+  .bind(&address)
+  .bind(&contact_email)
+  .bind(&contact_phone)
+  .bind(&contact_other)
+  .bind(&source_link)
+  .bind(price_rent)
+  .bind(&housing_type)
+  .bind(&lease_type)
+  .bind(upfront_fees)
+  .bind(&utilities)
+  .bind(credit_score_min)
+  .bind(minimum_income)
+  .bind(references_required)
+  .bind(bedrooms)
+  .bind(bathrooms)
+  .bind(square_footage)
+  .bind(&layout_description)
+  .bind(&amenities)
+  .bind(&pet_policy)
+  .bind(&furnishing)
+  .bind(&notes)
+  .bind(id)
+  .execute(pool)
+  .await
+  .map_err(|e| format!("Failed to update listing: {}", e))?;
+  if result.rows_affected() == 0 {
+    return Err(format!("No listing found with id {}", id));
+  }
+  Ok(())
 }
 
 // Get Notes for specified listing
 #[tauri::command]
 pub async fn get_listing_notes(listing_id: i64) -> Result<String, String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = DB_POOL.read().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let row = sqlx::query("SELECT notes FROM listings WHERE id = ?")
     .bind(listing_id)
@@ -113,12 +221,13 @@ pub async fn get_listing_notes(listing_id: i64) -> Result<String, String> {
 
   let notes: String = row.try_get("notes").unwrap_or_default();
   Ok(notes)
-} 
+}
 
 // Set/Update Notes for specified listing
 #[tauri::command]
 pub async fn set_listing_notes(listing_id: i64, notes: String) -> Result<(), String> {
-  let pool = DB_POOL.get().ok_or("Database not initialized")?;
+  let pool_guard = DB_POOL.read().await;
+  let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let result = sqlx::query("UPDATE listings SET notes = ? WHERE id = ?")
     .bind(&notes)
@@ -127,9 +236,9 @@ pub async fn set_listing_notes(listing_id: i64, notes: String) -> Result<(), Str
     .await
     .map_err(|e| format!("Failed to update notes: {}", e))?;
 
-    if result.rows_affected() == 0 {
-        return Err(format!("No listing found with id {}", listing_id));
-    }
+  if result.rows_affected() == 0 {
+    return Err(format!("No listing found with id {}", listing_id));
+  }
 
   Ok(())
 }

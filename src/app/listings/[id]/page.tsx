@@ -110,14 +110,15 @@ const ListingPage = () => {
     router.push(`/listings/${params.id as string}/edit`);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this listing? This action cannot be undone."
     );
 
     if (confirmDelete) {
-      // TODO: Implement actual delete logic here; delete listing from db
+      // TEST: Implement actual delete logic here; delete listing from db
       console.log("Deleting listing:", params.id);
+      await invoke("delete_listing", { id: Number(params.id) });
       <Alert>
         <CheckCircle2Icon />
         <AlertTitle>Listing deleted successfully!</AlertTitle>

@@ -4,6 +4,7 @@ import { DatabaseInitializer } from "@/components/DatabaseInitializer";
 import { ConditionalLayout } from "../components/ConditionalLayout";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Titlebar } from "@/components/titlebar";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
