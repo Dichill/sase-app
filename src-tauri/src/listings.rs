@@ -103,8 +103,7 @@ pub async fn get_listings() -> Result<Vec<Listing>, String> {
 
 #[tauri::command]
 pub async fn delete_listing(id: i64) -> Result<(), String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let result = sqlx::query("DELETE FROM listings WHERE id = ?")
@@ -145,8 +144,7 @@ pub async fn update_listing(
   furnishing: Option<String>,
   notes: Option<String>,
 ) -> Result<(), String> {
-  let db_pool = DB_POOL.get().ok_or("Database not initialized")?;
-  let pool_guard = db_pool.lock().await;
+  let pool_guard = DB_POOL.read().await;
   let pool = pool_guard.as_ref().ok_or("Database not initialized")?;
 
   let result = sqlx::query(
