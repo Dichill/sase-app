@@ -20,7 +20,7 @@ const ListingList = () => {
 
   return (
     <div className="w-full max-w-full space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-10 gap-y-6">
         {listings.map((listing, index) => (
           <ListingCard
             key={index}

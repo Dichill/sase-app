@@ -79,8 +79,18 @@ const CreateListing = () => {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="container mx-auto max-w-4xl p-6">
-        <h1 className="text-2xl font-bold mb-4">Bookmark a listing</h1>
+      <div
+        className="container mx-auto w-full px-10 justify-between"
+        style={{ marginTop: "48px" }}
+      >
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Bookmark a listing
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Like this place? Add it to your list to come back to later.
+          </p>
+        </div>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}

@@ -127,7 +127,7 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
     setIsEditing(false);
   };
   return (
-    <div className="rounded-lg border px-4 py-6">
+    <div className="rounded-lg border border-border bg-card px-4 py-6">
       <div className="flex items-center justify-between border-b pb-3">
         <h2 className="text-lg font-medium">Personal Information</h2>
         {!isEditing ? (

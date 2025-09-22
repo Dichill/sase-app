@@ -79,20 +79,20 @@ const ListingCard: React.FC<ListingCardProps> = ({
 
   return (
     <div
-      className="w-full bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+      className="min-w-2xs w-full bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer"
       onClick={handleClick}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-gray-900">
+            <h3 className="text-xl font-semibold text-card-foreground">
               {parseAddress(address)?.street}
             </h3>
             <div className="flex justify-end mb-2">
               <button
                 onClick={handleFavoriteClick}
-                className={` rounded-full cursor-pointer transition-colors duration-200 hover:bg-gray-100 ${
-                  isFavorited ? "text-yellow-500" : "text-gray-400"
+                className={` rounded-full cursor-pointer transition-colors duration-200 hover:bg-accent ${
+                  isFavorited ? "text-yellow-500" : "text-muted-foreground"
                 }`}
                 aria-label={
                   isFavorited ? "Remove from favorites" : "Add to favorites"
@@ -107,30 +107,30 @@ const ListingCard: React.FC<ListingCardProps> = ({
           {/* city  */}
           <div className="flex items-center gap-2 my-1">
             <MapPin className="w-4 h-4" />
-            <p className="text-gray-600 ">
+            <p className="text-muted-foreground">
               {parseAddress(address)?.city}, {parseAddress(address)?.state}
             </p>
           </div>
           {/* beds and bath */}
           <div className="flex items-center justify-between my-4">
             <div>
-              <h4 className="text-gray-600 text-sm">Details</h4>
+              <h4 className="text-muted-foreground text-sm">Details</h4>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1 ">
-                  <p className="text-gray-900 font-semibold">{bedrooms}</p>
+                  <p className="text-card-foreground font-semibold">{bedrooms}</p>
                   <Bed className="w-4 h-4" />
                 </div>
                 <div className="flex items-center gap-1 ">
-                  <p className="text-gray-900 font-semibold">{bathrooms}</p>
+                  <p className="text-card-foreground font-semibold">{bathrooms}</p>
                   <Bath className="w-4 h-4" />
                 </div>
               </div>
             </div>
             <div>
-              <h4 className="text-gray-600 text-sm">Cost</h4>
+              <h4 className="text-muted-foreground text-sm">Cost</h4>
               <div className="flex items-center gap-2">
                 <Tag className="w-4 h-4" />
-                <p className="text-gray-900 font-semibold">
+                <p className="text-card-foreground font-semibold">
                   ${formatRent(cost)}
                 </p>
               </div>
@@ -142,11 +142,11 @@ const ListingCard: React.FC<ListingCardProps> = ({
           <div className="my-2 pt-2">
             <div className="flex items-center gap-2 my-1">
               <Phone className="w-4 h-4" />
-              <p className="text-gray-900 font-medium">{phoneNumber}</p>
+              <p className="text-card-foreground font-medium">{phoneNumber}</p>
             </div>
             <div className="flex items-center gap-2 my-1">
               <Mail className="w-4 h-4" />
-              <p className="text-gray-900 font-medium">{email}</p>
+              <p className="text-card-foreground font-medium">{email}</p>
             </div>
           </div>
         </div>

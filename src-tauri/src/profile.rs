@@ -85,6 +85,7 @@ pub async fn get_monthly_income() -> Result<Vec<MonthlyIncome>, String> {
     r#"
         SELECT *
         FROM monthly_income
+        WHERE profile_id = 1
         "#,
   )
   .fetch_all(pool)

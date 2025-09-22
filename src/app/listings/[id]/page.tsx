@@ -76,7 +76,7 @@ const ListingPage = () => {
 
   useEffect(() => {
     setNotes(listing.notes || "");
-    getNotes(listing.notes || "");
+    void getNotes(listing.notes || "");
   }, [listing.notes]);
 
   // TEST: ALL YOU!!! reading
@@ -157,7 +157,7 @@ const ListingPage = () => {
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={handleDelete}
+                  onClick={() => void handleDelete()}
                   className="text-red-600 focus:text-red-600 cursor-pointer"
                 >
                   Delete
@@ -167,11 +167,11 @@ const ListingPage = () => {
           </div>
           <div className="text-2xl font-bold">
             ${formatRent(listing.price_rent)}
-            <span className="text-lg text-gray-700">/month</span>
+            <span className="text-lg text-muted-foreground">/month</span>
           </div>
         </div>
         <div className="flex items-center gap-2 my-2">
-          <MapPin className="w-5 h-5 text-gray-600" />
+          <MapPin className="w-5 h-5 text-muted-foreground" />
           <h3>
             {parseAddress(listing.address)?.city},{" "}
             {parseAddress(listing.address)?.state}
@@ -182,16 +182,16 @@ const ListingPage = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <Bed className="w-5 h-5 text-gray-600" />
+                <Bed className="w-5 h-5 text-muted-foreground" />
                 <span>{listing.bedrooms} beds</span>
               </div>
               <div className="flex items-center gap-2">
-                <Bath className="w-5 h-5 text-gray-600" />
+                <Bath className="w-5 h-5 text-muted-foreground" />
                 <span>{listing.bathrooms} baths</span>
               </div>
               {listing.square_footage && (
                 <div className="flex items-center gap-2">
-                  <LandPlot className="w-5 h-5 text-gray-600" />
+                  <LandPlot className="w-5 h-5 text-muted-foreground" />
                   <span>{listing.square_footage} sq. ft</span>
                 </div>
               )}
@@ -212,7 +212,7 @@ const ListingPage = () => {
                     </a>
                   </div>
                 </div>
-                <p className="text-gray-700">{listing.layout_description}</p>
+                <p className="text-foreground">{listing.layout_description}</p>
               </div>
             )}
 
@@ -254,7 +254,7 @@ const ListingPage = () => {
               {hasUnsavedChanges && (
                 <div className="flex items-center gap-2 justify-self-end">
                   <Button
-                    onClick={handleSaveNotes}
+                    onClick={() => void handleSaveNotes()}
                     size="sm"
                     className="flex items-center gap-2 cursor-pointer"
                   >
@@ -277,7 +277,7 @@ const ListingPage = () => {
 
           {/* Right Column */}
           <div className="space-y-4">
-            <div className="bg-gray-50 p-6 rounded-lg">
+            <div className="bg-card border border-border p-6 rounded-lg">
               <h3 className="font-semibold text-lg mb-2">
                 Leasing Information
               </h3>
@@ -285,28 +285,28 @@ const ListingPage = () => {
               <div className="space-y-1">
                 {listing.housing_type && (
                   <div className="px-4 flex">
-                    <h3 className="font-medium text-gray-600 mb-2 flex-1 text-sm">
+                    <h3 className="font-medium text-muted-foreground mb-2 flex-1 text-sm">
                       Housing Type:
                     </h3>
-                    <p className="flex-1 text-sm">{listing.housing_type}</p>
+                    <p className="flex-1 text-sm text-card-foreground">{listing.housing_type}</p>
                   </div>
                 )}
 
                 {listing.lease_type && (
                   <div className="px-4 flex">
-                    <h3 className="font-medium text-gray-600 mb-2 flex-1 text-sm">
+                    <h3 className="font-medium text-muted-foreground mb-2 flex-1 text-sm">
                       Lease Type:
                     </h3>
-                    <p className="flex-1 text-sm">{listing.lease_type}</p>
+                    <p className="flex-1 text-sm text-card-foreground">{listing.lease_type}</p>
                   </div>
                 )}
 
                 {listing.credit_score_min && (
                   <div className="px-4 flex">
-                    <h3 className="font-medium text-gray-600 mb-2 flex-1 text-sm">
+                    <h3 className="font-medium text-muted-foreground mb-2 flex-1 text-sm">
                       Minimum Credit Score:
                     </h3>
-                    <p className="flex-1 text-sm">
+                    <p className="flex-1 text-sm text-card-foreground">
                       {listing.credit_score_min}+
                     </p>
                   </div>
@@ -314,10 +314,10 @@ const ListingPage = () => {
 
                 {listing.minimum_income && (
                   <div className="px-4 flex">
-                    <h3 className="font-medium text-gray-600 mb-2 flex-1 text-sm    ">
+                    <h3 className="font-medium text-muted-foreground mb-2 flex-1 text-sm">
                       Minimum Income:
                     </h3>
-                    <p className="flex-1 text-sm">
+                    <p className="flex-1 text-sm text-card-foreground">
                       ${listing.minimum_income.toLocaleString()}/month
                     </p>
                   </div>
@@ -325,27 +325,27 @@ const ListingPage = () => {
 
                 {listing.pet_policy && (
                   <div className="px-4 flex">
-                    <h3 className="font-medium text-gray-600 mb-2 flex-1 text-sm">
+                    <h3 className="font-medium text-muted-foreground mb-2 flex-1 text-sm">
                       Pet Policy:
                     </h3>
-                    <p className="flex-1 text-sm">{listing.pet_policy}</p>
+                    <p className="flex-1 text-sm text-card-foreground">{listing.pet_policy}</p>
                   </div>
                 )}
               </div>
             </div>
-            <div className="bg-gray-50 p-6 rounded-lg">
+            <div className="bg-card border border-border p-6 rounded-lg">
               <h4 className="font-semibold text-lg mb-2">Features</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mx-4">
                 {listing.amenities && (
                   <div>
-                    <h3 className="font-medium text-gray-600 mb-2">
+                    <h3 className="font-medium text-muted-foreground mb-2">
                       Amenities
                     </h3>
                     <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
                       {listing.amenities.split(", ").map((amenity, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <ArrowRight className="w-4 h-4 flex-shrink-0 text-gray-600" />
-                          <span className="py-1 text-sm">{amenity}</span>
+                          <ArrowRight className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                          <span className="py-1 text-sm text-card-foreground">{amenity}</span>
                         </div>
                       ))}
                     </div>
@@ -354,14 +354,14 @@ const ListingPage = () => {
 
                 {listing.utilities && (
                   <div>
-                    <h3 className="font-medium text-gray-600 mb-2">
+                    <h3 className="font-medium text-muted-foreground mb-2">
                       Utilities
                     </h3>
                     <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
                       {listing.utilities.split(", ").map((utility, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <ArrowRight className="w-4 h-4 flex-shrink-0 text-gray-600" />
-                          <span className="py-1 text-sm">{utility}</span>
+                          <ArrowRight className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                          <span className="py-1 text-sm text-card-foreground">{utility}</span>
                         </div>
                       ))}
                     </div>

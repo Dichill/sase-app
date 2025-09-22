@@ -12,14 +12,14 @@ const listings = listingData;
 
 const FavoriteListingCarousel = () => {
   return (
-    <div className="w-full px-18">
+    <div className="w-full ">
       <div className="w-full rounded-lg px-4 py-6 ">
         <h2 className="text-lg font-medium my-4">Favorite Listings</h2>
 
         <Carousel>
           <CarouselContent>
             {listings.map((listing, i) => (
-              <CarouselItem key={i} className="px-4 lg:basis-1/3">
+              <CarouselItem key={i} className=" basis-full">
                 <ListingCard
                   id={listing.id}
                   address={listing.address}
