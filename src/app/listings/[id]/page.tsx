@@ -17,6 +17,7 @@ import {
   X,
   SquareArrowOutUpRightIcon,
   MoreVertical,
+  CheckCircle2Icon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -26,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { invoke } from "@tauri-apps/api/core";
 
 const ListingPage = () => {
@@ -72,7 +74,6 @@ const ListingPage = () => {
     return null;
   };
 
-  
   useEffect(() => {
     setNotes(listing.notes || "");
     getNotes(listing.notes || "");
@@ -81,8 +82,8 @@ const ListingPage = () => {
   // TEST: ALL YOU!!! reading
   const getNotes = async (notes: string) => {
     try {
-      const dbNotes: string = await invoke("get_listing_notes", { notes }); 
-      setNotes(dbNotes); 
+      const dbNotes: string = await invoke("get_listing_notes", { notes });
+      setNotes(dbNotes);
     } catch (error) {
       console.error("Failed to load notes", error);
     }
@@ -118,7 +119,10 @@ const ListingPage = () => {
       // TEST: Implement actual delete logic here; delete listing from db
       console.log("Deleting listing:", params.id);
       await invoke("delete_listing", { id: Number(params.id) });
-      alert("Listing deleted successfully!");
+      <Alert>
+        <CheckCircle2Icon />
+        <AlertTitle>Listing deleted successfully!</AlertTitle>
+      </Alert>;
       router.push("/listings"); // Navigate back to listings page
     }
   };

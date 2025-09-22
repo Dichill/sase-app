@@ -23,9 +23,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { invoke } from "@tauri-apps/api/core";
+import { CheckCircle2Icon } from "lucide-react";
 
 const formSchema = z.object({
   address: z
@@ -113,7 +115,10 @@ const EditListing = () => {
     // TEST: Implement actual update logic here; update listing in db
     // For now, just log the values and navigate back
     await invoke("update_listing", { id: listingId, ...values });
-    alert("Listing updated successfully!");
+    <Alert>
+      <CheckCircle2Icon />
+      <AlertTitle>Listing updated successfully!</AlertTitle>
+    </Alert>;
     router.push(`/listings/${listingId}`);
   };
 
