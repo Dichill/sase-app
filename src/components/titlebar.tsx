@@ -22,7 +22,7 @@ interface TitlebarProps {
 }
 
 export function Titlebar({
-    title = "DICHOPHSTIN",
+    title = "HOMIE",
     showControls = true,
     className = "",
 }: TitlebarProps) {

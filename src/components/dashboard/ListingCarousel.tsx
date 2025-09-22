@@ -14,13 +14,22 @@ import {
     getFavoriteListings,
     type Listing,
 } from "@/utils/database";
+import { useDatabaseContextSafe } from "@/components/DatabaseInitializer";
 
 const FavoriteListingCarousel = () => {
+    const { isDatabaseInitialized } = useDatabaseContextSafe();
     const [favoriteListings, setFavoriteListings] = useState<Listing[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const loadFavoriteListings = async () => {
+        if (!isDatabaseInitialized) {
+            console.log(
+                "Database not yet initialized, skipping favorite listings load"
+            );
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -37,13 +46,13 @@ const FavoriteListingCarousel = () => {
 
     useEffect(() => {
         void loadFavoriteListings();
-    }, []);
+    }, [isDatabaseInitialized]);
 
     const handleListingUpdate = () => {
         void loadFavoriteListings();
     };
 
-    if (loading) {
+    if (loading || !isDatabaseInitialized) {
         return (
             <div className="w-full px-18">
                 <div className="w-full rounded-lg px-4 py-6">
@@ -52,7 +61,9 @@ const FavoriteListingCarousel = () => {
                     </h2>
                     <div className="flex items-center justify-center py-8">
                         <div className="text-gray-500">
-                            Loading favorite listings...
+                            {!isDatabaseInitialized
+                                ? "Initializing database..."
+                                : "Loading favorite listings..."}
                         </div>
                     </div>
                 </div>

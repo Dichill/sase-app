@@ -40,6 +40,7 @@ import {
     toggleChecklistCompletion,
     type Checklist as ChecklistType,
 } from "../../utils/database";
+import { useDatabaseContextSafe } from "../DatabaseInitializer";
 
 interface Reference {
     id: string;
@@ -94,6 +95,7 @@ const iconTypes = {
 };
 
 const Checklist = () => {
+    const { isDatabaseInitialized } = useDatabaseContextSafe();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -112,9 +114,16 @@ const Checklist = () => {
 
     useEffect(() => {
         void loadChecklists();
-    }, []);
+    }, [isDatabaseInitialized]);
 
     const loadChecklists = async () => {
+        if (!isDatabaseInitialized) {
+            console.log(
+                "Database not yet initialized, skipping checklists load"
+            );
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -298,13 +307,15 @@ const Checklist = () => {
         }
     };
 
-    if (loading) {
+    if (loading || !isDatabaseInitialized) {
         return (
             <div className="w-full">
                 <div className="rounded-lg border px-4 py-6">
                     <div className="flex items-center justify-center py-8">
                         <div className="text-gray-500">
-                            Loading checklists...
+                            {!isDatabaseInitialized
+                                ? "Initializing database..."
+                                : "Loading checklists..."}
                         </div>
                     </div>
                 </div>

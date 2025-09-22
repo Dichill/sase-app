@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
     reactStrictMode: true,
-    devIndicators: {
-        buildActivity: false,
+    turbo: {
+        devOverlay: false,
     },
     images: {
         unoptimized: true,

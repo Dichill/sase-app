@@ -10,6 +10,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Heart, List } from "lucide-react";
+import { useDatabaseContextSafe } from "@/components/DatabaseInitializer";
 
 interface ListingListProps {
     showFavoritesOnly?: boolean;
@@ -20,12 +21,20 @@ const ListingList: React.FC<ListingListProps> = ({
     showFavoritesOnly = false,
     sortByFavorites = true,
 }) => {
+    const { isDatabaseInitialized } = useDatabaseContextSafe();
     const [listings, setListings] = useState<Listing[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState(false);
 
     const fetchListings = async () => {
+        if (!isDatabaseInitialized) {
+            console.log(
+                "Database not yet initialized, skipping listings fetch"
+            );
+            return;
+        }
+
         try {
             setError(null);
             const allListings = await getListings();
@@ -68,15 +77,19 @@ const ListingList: React.FC<ListingListProps> = ({
 
     useEffect(() => {
         void fetchListings();
-    }, [showFavoritesOnly, sortByFavorites]);
+    }, [isDatabaseInitialized, showFavoritesOnly, sortByFavorites]);
 
-    if (loading) {
+    if (loading || !isDatabaseInitialized) {
         return (
             <div className="w-full max-w-full space-y-6">
                 <div className="flex items-center justify-center py-12">
                     <div className="flex items-center gap-2 text-gray-600">
                         <RefreshCw className="w-5 h-5 animate-spin" />
-                        <span>Loading listings...</span>
+                        <span>
+                            {!isDatabaseInitialized
+                                ? "Initializing database..."
+                                : "Loading listings..."}
+                        </span>
                     </div>
                 </div>
             </div>

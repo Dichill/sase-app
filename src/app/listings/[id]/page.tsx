@@ -13,6 +13,7 @@ import {
     downloadPdf,
 } from "@/utils/database";
 import { createClient } from "@/utils/supabase/client";
+import { useDatabaseContextSafe } from "@/components/DatabaseInitializer";
 import {
     Bed,
     Bath,
@@ -42,6 +43,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { invoke } from "@tauri-apps/api/core";
 
 const ListingPage = () => {
+    const { isDatabaseInitialized } = useDatabaseContextSafe();
     const params = useParams();
     const router = useRouter();
     const [listing, setListing] = useState<Listing | null>(null);
@@ -57,6 +59,13 @@ const ListingPage = () => {
 
     useEffect(() => {
         const fetchListing = async () => {
+            if (!isDatabaseInitialized) {
+                console.log(
+                    "Database not yet initialized, skipping listing fetch"
+                );
+                return;
+            }
+
             try {
                 const listingId = Number(params.id);
                 if (isNaN(listingId)) {
@@ -82,6 +91,13 @@ const ListingPage = () => {
         };
 
         const fetchDocuments = async () => {
+            if (!isDatabaseInitialized) {
+                console.log(
+                    "Database not yet initialized, skipping documents fetch"
+                );
+                return;
+            }
+
             try {
                 const fetchedDocuments = await getDocuments();
                 setDocuments(fetchedDocuments);
@@ -92,7 +108,7 @@ const ListingPage = () => {
 
         void fetchListing();
         void fetchDocuments();
-    }, [params.id]);
+    }, [params.id, isDatabaseInitialized]);
 
     // Filter referenced documents when listing or documents change
     useEffect(() => {
@@ -107,7 +123,6 @@ const ListingPage = () => {
     }, [listing, documents]);
 
     const handleGenerateAndDownloadPdf = useCallback(async () => {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (!listing) {
             console.error("No listing data available");
             return;
@@ -205,11 +220,15 @@ const ListingPage = () => {
         }
     }, [listing]);
 
-    if (loading) {
+    if (loading || !isDatabaseInitialized) {
         return (
             <div className="h-full flex items-center justify-center">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+                    <h1 className="text-2xl font-bold mb-4">
+                        {!isDatabaseInitialized
+                            ? "Initializing database..."
+                            : "Loading..."}
+                    </h1>
                 </div>
             </div>
         );
