@@ -237,89 +237,89 @@
 //         [router]
 //     );
 
-const handleGenerateAndDownloadPdf = useCallback(async () => {
-  if (!user) {
-    console.error("No user logged in");
-    return;
-  }
+// const handleGenerateAndDownloadPdf = useCallback(async () => {
+//   if (!user) {
+//     console.error("No user logged in");
+//     return;
+//   }
 
-  setIsPdfGenerating(true);
+//   setIsPdfGenerating(true);
 
-  try {
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+//   try {
+//     const supabase = createClient();
+//     const {
+//       data: { session },
+//     } = await supabase.auth.getSession();
 
-    if (!session?.access_token) {
-      throw new Error("No access token available");
-    }
+//     if (!session?.access_token) {
+//       throw new Error("No access token available");
+//     }
 
-    console.log("Starting PDF generation process...");
+//     console.log("Starting PDF generation process...");
 
-    // Sample data for PDF generation (you can modify this as needed)
-    const pdfData = {
-      full_name: "John Doe",
-      date_of_birth: "1990-05-15",
-      gender: "Male",
-      phone: "+1 (555) 123-4567",
-      email: user.email,
-      profile_address: "123 Main St, Los Angeles, CA 90012",
-      profile_created_at: "2025-01-10T14:32:00Z",
-      profile_updated_at: "2025-09-15T09:18:00Z",
-      listing_id: "LST-20250921-001",
-      listing_address: "456 Elm St, Los Angeles, CA 90013",
-      contact_email: "contact@listing.com",
-      contact_phone: "+1 (555) 987-6543",
-      contact_other: "Available via WhatsApp",
-      source_link: "https://apartments.com/listing/456-elm-st",
-      price_rent: "$2,450 / month",
-      housing_type: "Apartment",
-      lease_type: "12-Month Lease",
-      upfront_fees: "$500 security deposit, $150 application fee",
-      utilities: "Water, Trash included; Electricity separate",
-      credit_score_min: "650",
-      minimum_income: "$6,000 / month",
-      references_required: "Yes",
-      bedrooms: "2",
-      bathrooms: "2",
-      square_footage: "1,050",
-      layout_description: "Open floor plan with modern kitchen",
-      amenities: "Gym, Pool, Parking, In-unit Laundry",
-      pet_policy: "Pets allowed (max 2, $300 pet deposit)",
-      furnishing: "Unfurnished",
-      listing_notes: "Close to public transport and shopping centers",
-      listing_created_at: "2025-09-01T08:00:00Z",
-      listing_updated_at: "2025-09-18T11:45:00Z",
-    };
+//     // Sample data for PDF generation (you can modify this as needed)
+//     const pdfData = {
+//       full_name: "John Doe",
+//       date_of_birth: "1990-05-15",
+//       gender: "Male",
+//       phone: "+1 (555) 123-4567",
+//       email: user.email,
+//       profile_address: "123 Main St, Los Angeles, CA 90012",
+//       profile_created_at: "2025-01-10T14:32:00Z",
+//       profile_updated_at: "2025-09-15T09:18:00Z",
+//       listing_id: "LST-20250921-001",
+//       listing_address: "456 Elm St, Los Angeles, CA 90013",
+//       contact_email: "contact@listing.com",
+//       contact_phone: "+1 (555) 987-6543",
+//       contact_other: "Available via WhatsApp",
+//       source_link: "https://apartments.com/listing/456-elm-st",
+//       price_rent: "$2,450 / month",
+//       housing_type: "Apartment",
+//       lease_type: "12-Month Lease",
+//       upfront_fees: "$500 security deposit, $150 application fee",
+//       utilities: "Water, Trash included; Electricity separate",
+//       credit_score_min: "650",
+//       minimum_income: "$6,000 / month",
+//       references_required: "Yes",
+//       bedrooms: "2",
+//       bathrooms: "2",
+//       square_footage: "1,050",
+//       layout_description: "Open floor plan with modern kitchen",
+//       amenities: "Gym, Pool, Parking, In-unit Laundry",
+//       pet_policy: "Pets allowed (max 2, $300 pet deposit)",
+//       furnishing: "Unfurnished",
+//       listing_notes: "Close to public transport and shopping centers",
+//       listing_created_at: "2025-09-01T08:00:00Z",
+//       listing_updated_at: "2025-09-18T11:45:00Z",
+//     };
 
-    console.log("Fetching PDF from external API...");
-    const apiPdfData = await fetchPdfFromApi(pdfData, session.access_token);
+//     console.log("Fetching PDF from external API...");
+//     const apiPdfData = await fetchPdfFromApi(pdfData, session.access_token);
 
-    console.log("Combining with documents...");
-    const documentIds = [1, 2];
-    const combinedPdfData = await buildCombinedPdfWithSaseApi(
-      apiPdfData,
-      documentIds,
-      session.access_token
-    );
+//     console.log("Combining with documents...");
+//     const documentIds = [1, 2];
+//     const combinedPdfData = await buildCombinedPdfWithSaseApi(
+//       apiPdfData,
+//       documentIds,
+//       session.access_token
+//     );
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const filename = `combined-document-${timestamp}.pdf`;
-    downloadPdf(combinedPdfData, filename);
+//     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+//     const filename = `combined-document-${timestamp}.pdf`;
+//     downloadPdf(combinedPdfData, filename);
 
-    console.log("PDF generation and download completed successfully!");
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    alert(
-      `Error generating PDF: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`
-    );
-  } finally {
-    setIsPdfGenerating(false);
-  }
-}, [user]);
+//     console.log("PDF generation and download completed successfully!");
+//   } catch (error) {
+//     console.error("Error generating PDF:", error);
+//     alert(
+//       `Error generating PDF: ${
+//         error instanceof Error ? error.message : "Unknown error"
+//       }`
+//     );
+//   } finally {
+//     setIsPdfGenerating(false);
+//   }
+// }, [user]);
 
 //     useEffect(() => {
 //         void checkAuth();

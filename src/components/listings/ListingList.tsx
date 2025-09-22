@@ -10,7 +10,7 @@ const listings = listingData;
 const ListingList = () => {
   //TEST: GET /listings (PLS JUSTIN U GOT ME RIGHT?!) get listings from db, return array of listings
 
-  let fetchListings = async () => {
+  const fetchListings = async () => {
     try {
       const allListings: Listing[] = await invoke("get_listings");
     } catch (error) {
