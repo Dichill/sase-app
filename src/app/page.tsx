@@ -488,10 +488,25 @@ import Checklist from "@/components/dashboard/Checklist";
 
 const Dashboard = () => {
   return (
-    <div className="w-full max-w-full">
-      <QuickDocs />
-      <FavoriteListingCarousel />
-      <Checklist />
+    <div className="h-full overflow-y-auto">
+      <div
+        className="container mx-auto w-full px-10"
+        style={{ marginTop: "48px", marginBottom: "64px" }}
+      >
+        <div className="mb-2">
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        </div>
+        <div className="flex gap-4">
+          <div className="w-1/2">
+            <QuickDocs />
+            <FavoriteListingCarousel />
+          </div>
+
+          <div className="w-1/2">
+            <Checklist />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

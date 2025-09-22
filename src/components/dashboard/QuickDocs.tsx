@@ -17,17 +17,17 @@ import {
 const quickAccess = [
   {
     name: "Documents",
-    icon: <Folder className="w-20 h-20" />,
+    icon: <Folder className="w-5 h-5" />,
     href: "/listings",
   },
   {
     name: "Forms",
-    icon: <FileText className="w-20 h-20" />,
+    icon: <FileText className="w-5 h-5" />,
     href: "/listings",
   },
   {
     name: "Templates",
-    icon: <Link className="w-20 h-20" />,
+    icon: <Link className="w-5 h-5" />,
     href: "/listings",
   },
 ];
@@ -61,7 +61,7 @@ const QuickDocs = () => {
     // Create new quick access item
     const newItem = {
       name: formData.name,
-      icon: <IconComponent className="w-20 h-20" />,
+      icon: <IconComponent className="w-5 h-5" />,
       href: formData.url,
     };
 
@@ -78,127 +78,111 @@ const QuickDocs = () => {
 
   return (
     <div>
-      <div className="w-full px-18">
-        {/* Outer box */}
-        <div className="w-full rounded-lg px-4 py-6 ">
-          <h2 className="text-lg font-medium py-4">Quick Access</h2>
-          <div className="flex items-center space-x-2 my-4">
-            {quickAccessItems.map((item, index) => (
-              <Button
+      <div className="w-full ">
+        <div className="w-full rounded-lg px-4 py-4 ">
+          <h2 className="text-lg font-medium pb-4">Quick Access</h2>
+          <div className="grid grid-cols-5 gap-4 py-2">
+            {quickAccessItems.slice(0, 10).map((item, index) => (
+              <div
                 key={index}
-                type="button"
-                variant="ghost"
-                className="flex flex-col items-center gap-2 hover:bg-transparent"
+                className="flex flex-col items-center gap-2 cursor-pointer"
                 onClick={() => {
                   router.push(item.href);
                 }}
               >
-                <div className="bg-gray-100 hover:bg-gray-200 rounded-xl p-4 cursor-pointer flex items-center justify-center">
+                <div className="bg-secondary hover:bg-accent rounded-xl p-4 cursor-pointer flex items-center justify-center text-foreground">
                   {item.icon}
                 </div>
                 <div className="text-sm cursor-pointer font-medium">
                   {item.name}
                 </div>
-              </Button>
+              </div>
             ))}
 
-            <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="flex flex-col items-center gap-2 hover:bg-transparent z-50"
-                >
-                  <div className="bg-gray-200 hover:bg-gray-300 rounded-xl p-4 cursor-pointer flex items-center justify-center border-dashed border border-gray-400">
-                    <Plus className="w-20 h-20" />
-                  </div>
-                  <div className="text-sm cursor-pointer font-medium">Add</div>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 z-50 bg-gray-50 rounded-lg border p-4">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <h4 className="leading-none font-medium">
-                      Add Quick Access
-                    </h4>
-                    <p className="text-muted-foreground text-sm">
-                      Add a quick access item to your dashboard.
-                    </p>
-                  </div>
-                  <div className="grid gap-2">
-                    <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="name">Name</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => {
-                          setFormData({ ...formData, name: e.target.value });
-                        }}
-                        placeholder="Enter name"
-                        className="col-span-2 h-8"
-                      />
+            {quickAccessItems.length < 10 && (
+              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <div className="flex flex-col items-center gap-2 cursor-pointer z-50">
+                    <div className="bg-muted hover:bg-accent rounded-xl p-4 cursor-pointer flex items-center justify-center border-dashed border border-border text-foreground">
+                      <Plus className="w-5 h-5" />
                     </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="type">Type</Label>
-                      <Select
-                        value={selectedType}
-                        onValueChange={setSelectedType}
-                      >
-                        <SelectTrigger className="col-span-2 h-8 w-full">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="folder">
-                            <div className="flex items-center gap-2">
-                              {iconTypes.folder.icon}
-                              <span>Folder</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="file">
-                            <div className="flex items-center gap-2">
-                              {iconTypes.file.icon}
-                              <span>File</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="link">
-                            <div className="flex items-center gap-2">
-                              {iconTypes.link.icon}
-                              <span>Link</span>
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="url">URL</Label>
-                      <Input
-                        id="url"
-                        value={formData.url}
-                        onChange={(e) => {
-                          setFormData({ ...formData, url: e.target.value });
-                        }}
-                        placeholder="Enter URL or path"
-                        className="col-span-2 h-8"
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2 pt-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setIsPopoverOpen(false);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button size="sm" onClick={handleAdd}>
-                        Add Item
-                      </Button>
+                    <div className="text-sm cursor-pointer font-medium">
+                      Add
                     </div>
                   </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 z-50 bg-popover rounded-lg border p-4">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <h4 className="leading-none font-medium">
+                        Add Quick Access
+                      </h4>
+                      <p className="text-muted-foreground text-sm">
+                        Add a quick access item to your dashboard. (
+                        {quickAccessItems.length}/10)
+                      </p>
+                    </div>
+                    <div className="grid gap-2">
+                      <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="name">Name</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) => {
+                            setFormData({ ...formData, name: e.target.value });
+                          }}
+                          className="col-span-2 h-8"
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="type">Type</Label>
+                        <Select
+                          value={selectedType}
+                          onValueChange={setSelectedType}
+                        >
+                          <SelectTrigger className="col-span-2 h-8 w-full">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="folder">
+                              <div className="flex items-center gap-2">
+                                {iconTypes.folder.icon}
+                                <span>Folder</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="file">
+                              <div className="flex items-center gap-2">
+                                {iconTypes.file.icon}
+                                <span>File</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="link">
+                              <div className="flex items-center gap-2">
+                                {iconTypes.link.icon}
+                                <span>Link</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="url">URL</Label>
+                        <Input
+                          id="url"
+                          value={formData.url}
+                          onChange={(e) => {
+                            setFormData({ ...formData, url: e.target.value });
+                          }}
+                          placeholder="Enter URL or path"
+                          className="col-span-2 h-8"
+                        />
+                      </div>
+                    </div>
+                    <Button onClick={handleAdd}>Add Item</Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
         </div>
       </div>

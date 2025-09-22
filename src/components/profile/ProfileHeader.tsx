@@ -23,7 +23,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <h1 className="text-2xl font-bold">{name}</h1>
       </div>
       <div>
-        <p className="text-gray-600">{bio}</p>
+        <p className="text-muted-foreground">{bio}</p>
       </div>
     </div>
   );
