@@ -1,3 +1,4 @@
+mod checklist;
 mod document;
 mod helpers;
 mod listings;
@@ -86,20 +87,22 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
       source_link TEXT NOT NULL,
       price_rent DECIMAL(10,2) NOT NULL,
       housing_type TEXT,
-      lease_type TEXT CHECK (lease_type IN ('month-to-month', 'annual')),
+      lease_type TEXT,
       upfront_fees DECIMAL(10,2),
       utilities TEXT, -- JSON array of utilities
       credit_score_min INTEGER,
       minimum_income DECIMAL(10,2),
       references_required BOOLEAN DEFAULT 0,
+      reference_document_ids TEXT, -- JSON array of document IDs
       bedrooms INTEGER,
       bathrooms DECIMAL(3,1),
       square_footage INTEGER,
       layout_description TEXT,
       amenities TEXT, -- JSON array of amenities
       pet_policy TEXT,
-      furnishing TEXT CHECK (furnishing IN ('furnished', 'unfurnished', 'semi-furnished')),
+      furnishing TEXT,
       notes TEXT,
+      favorite BOOLEAN DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -278,6 +281,7 @@ struct Listing {
   credit_score_min: Option<i32>,
   minimum_income: Option<f64>,
   references_required: Option<bool>,
+  reference_document_ids: Option<String>,
   bedrooms: Option<i32>,
   bathrooms: Option<f64>,
   square_footage: Option<i32>,
@@ -286,6 +290,7 @@ struct Listing {
   pet_policy: Option<String>,
   furnishing: Option<String>,
   notes: Option<String>,
+  favorite: Option<bool>,
   created_at: Option<String>,
   updated_at: Option<String>,
 }
@@ -529,16 +534,24 @@ pub fn run() {
       profile::delete_additional_info,
       listings::add_listing,
       listings::get_listings,
+      listings::get_listing,
       listings::delete_listing,
       listings::get_listing_notes,
       listings::set_listing_notes,
       listings::update_listing,
+      listings::toggle_listing_favorite,
+      listings::set_listing_favorite,
       document::get_documents,
       document::add_document,
       document::read_file_as_blob,
       document::delete_document,
       document::test_pdf_generation,
       document::build_pdf_with_sase_api,
+      checklist::get_checklists,
+      checklist::add_checklist,
+      checklist::update_checklist,
+      checklist::delete_checklist,
+      checklist::toggle_checklist_completion,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

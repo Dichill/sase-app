@@ -1,6 +1,19 @@
+"use client";
+import { useState } from "react";
 import ListingList from "@/components/listings/ListingList";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Heart, List } from "lucide-react";
+import { useRouter } from "next/navigation";
+
 const Listings = () => {
+    const router = useRouter();
+    const [activeTab, setActiveTab] = useState("all");
+
+    const handleAddListing = () => {
+        router.push("/listings/create");
+    };
+
     return (
         <div className="h-full overflow-y-auto">
             <div
@@ -17,16 +30,52 @@ const Listings = () => {
                         </p>
                     </div>
                     <Button
-                        asChild
+                        onClick={handleAddListing}
                         variant="secondary"
                         className="cursor-pointer"
                     >
-                        <a href="/listings/create">Add Listing</a>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Listing
                     </Button>
                 </div>
-            </div>
-            <div>
-                <ListingList />
+
+                <Tabs
+                    value={activeTab}
+                    onValueChange={setActiveTab}
+                    className="w-full"
+                >
+                    <TabsList className="grid w-full max-w-md grid-cols-2">
+                        <TabsTrigger
+                            value="all"
+                            className="flex items-center gap-2"
+                        >
+                            <List className="w-4 h-4" />
+                            All Listings
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="favorites"
+                            className="flex items-center gap-2"
+                        >
+                            <Heart className="w-4 h-4" />
+                            Favorites
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <div className="mt-6">
+                        <TabsContent value="all" className="mt-0">
+                            <ListingList
+                                showFavoritesOnly={false}
+                                sortByFavorites={true}
+                            />
+                        </TabsContent>
+                        <TabsContent value="favorites" className="mt-0">
+                            <ListingList
+                                showFavoritesOnly={true}
+                                sortByFavorites={false}
+                            />
+                        </TabsContent>
+                    </div>
+                </Tabs>
             </div>
         </div>
     );

@@ -20,6 +20,7 @@ export interface Listing {
     credit_score_min?: number;
     minimum_income?: number;
     references_required?: boolean;
+    reference_document_ids?: number[];
     bedrooms?: number;
     bathrooms?: number;
     square_footage?: number;
@@ -28,6 +29,7 @@ export interface Listing {
     pet_policy?: string;
     furnishing?: "furnished" | "unfurnished" | "semi-furnished";
     notes?: string;
+    favorite?: boolean;
     created_at?: string;
     updated_at?: string;
 }
@@ -85,7 +87,16 @@ export async function addListing(
     listing: Omit<Listing, "id" | "created_at" | "updated_at">
 ): Promise<number> {
     try {
-        const result = await invoke<number>("add_listing", { listing });
+        const listingWithJsonIds = {
+            ...listing,
+            reference_document_ids: listing.reference_document_ids
+                ? JSON.stringify(listing.reference_document_ids)
+                : undefined,
+        };
+
+        const result = await invoke<number>("add_listing", {
+            listing: listingWithJsonIds,
+        });
         return result;
     } catch (error) {
         console.error("Failed to add listing:", error);
@@ -96,10 +107,162 @@ export async function addListing(
 export async function getListings(): Promise<Listing[]> {
     try {
         const result = await invoke<Listing[]>("get_listings");
-        return result;
+        return result.map((listing) => ({
+            ...listing,
+            reference_document_ids:
+                typeof listing.reference_document_ids === "string"
+                    ? (JSON.parse(listing.reference_document_ids) as number[])
+                    : listing.reference_document_ids,
+        }));
     } catch (error) {
         console.error("Failed to get listings:", error);
         throw new Error(`Failed to get listings: ${error}`);
+    }
+}
+
+export async function getListing(id: number): Promise<Listing> {
+    try {
+        const result = await invoke<Listing>("get_listing", { id });
+        return {
+            ...result,
+            reference_document_ids:
+                typeof result.reference_document_ids === "string"
+                    ? (JSON.parse(result.reference_document_ids) as number[])
+                    : result.reference_document_ids,
+        };
+    } catch (error) {
+        console.error("Failed to get listing:", error);
+        throw new Error(`Failed to get listing: ${error}`);
+    }
+}
+
+export async function deleteListing(id: number): Promise<void> {
+    try {
+        await invoke("delete_listing", { id });
+    } catch (error) {
+        console.error("Failed to delete listing:", error);
+        throw new Error(`Failed to delete listing: ${error}`);
+    }
+}
+
+export async function updateListing(
+    id: number,
+    address: string,
+    contactEmail?: string,
+    contactPhone?: string,
+    contactOther?: string,
+    sourceLink?: string,
+    priceRent?: number,
+    housingType?: string,
+    leaseType?: "month-to-month" | "annual",
+    upfrontFees?: number,
+    utilities?: string,
+    creditScoreMin?: number,
+    minimumIncome?: number,
+    referencesRequired?: boolean,
+    bedrooms?: number,
+    bathrooms?: number,
+    squareFootage?: number,
+    layoutDescription?: string,
+    amenities?: string,
+    petPolicy?: string,
+    furnishing?: "furnished" | "unfurnished" | "semi-furnished",
+    notes?: string,
+    favorite?: boolean,
+    referenceDocumentIds?: number[]
+): Promise<void> {
+    try {
+        await invoke("update_listing", {
+            id,
+            address,
+            contactEmail,
+            contactPhone,
+            contactOther,
+            sourceLink: sourceLink ?? "",
+            priceRent: priceRent ?? 0,
+            housingType,
+            leaseType,
+            upfrontFees,
+            utilities,
+            creditScoreMin,
+            minimumIncome,
+            referencesRequired,
+            referenceDocumentIds: referenceDocumentIds
+                ? JSON.stringify(referenceDocumentIds)
+                : null,
+            bedrooms,
+            bathrooms,
+            squareFootage,
+            layoutDescription,
+            amenities,
+            petPolicy,
+            furnishing,
+            notes,
+            favorite,
+        });
+    } catch (error) {
+        console.error("Failed to update listing:", error);
+        throw new Error(`Failed to update listing: ${error}`);
+    }
+}
+
+export async function getListingNotes(listingId: number): Promise<string> {
+    try {
+        const result = await invoke<string>("get_listing_notes", {
+            listingId,
+        });
+        return result;
+    } catch (error) {
+        console.error("Failed to get listing notes:", error);
+        throw new Error(`Failed to get listing notes: ${error}`);
+    }
+}
+
+export async function setListingNotes(
+    listingId: number,
+    notes: string
+): Promise<void> {
+    try {
+        await invoke("set_listing_notes", { listingId, notes });
+    } catch (error) {
+        console.error("Failed to set listing notes:", error);
+        throw new Error(`Failed to set listing notes: ${error}`);
+    }
+}
+
+/**
+ * Toggle the favorite status of a listing
+ * @param listingId - The ID of the listing to toggle
+ * @returns The new favorite status (true if now favorited, false if unfavorited)
+ */
+export async function toggleListingFavorite(
+    listingId: number
+): Promise<boolean> {
+    try {
+        const result = await invoke<boolean>("toggle_listing_favorite", {
+            listingId,
+        });
+        return result;
+    } catch (error) {
+        console.error("Failed to toggle listing favorite:", error);
+        throw new Error(`Failed to toggle listing favorite: ${error}`);
+    }
+}
+
+/**
+ * Set the favorite status of a listing
+ * @param listingId - The ID of the listing to update
+ * @param favorite - The favorite status to set (true for favorite, false for unfavorite)
+ */
+export async function setListingFavorite(
+    listingId: number,
+    favorite: boolean
+): Promise<void> {
+    try {
+        await invoke("set_listing_favorite", { listingId, favorite });
+    } catch (error) {
+        console.error("Failed to set listing favorite:", error);
+        throw new Error(`Failed to set listing favorite: ${error}`);
     }
 }
 
@@ -355,5 +518,96 @@ export function downloadPdf(pdfData: Uint8Array, filename: string): void {
     } catch (error) {
         console.error("Failed to download PDF:", error);
         throw new Error(`Failed to download PDF: ${error}`);
+    }
+}
+
+// Utility functions for working with listing favorites
+
+export function getFavoriteListings(listings: Listing[]): Listing[] {
+    return listings.filter((listing) => listing.favorite === true);
+}
+
+export function getNonFavoriteListings(listings: Listing[]): Listing[] {
+    return listings.filter((listing) => listing.favorite !== true);
+}
+
+export function sortListingsByFavorite(listings: Listing[]): Listing[] {
+    return [...listings].sort((a, b) => {
+        // Favorites first
+        if (a.favorite && !b.favorite) return -1;
+        if (!a.favorite && b.favorite) return 1;
+        return 0;
+    });
+}
+
+export function isListingFavorite(listing: Listing): boolean {
+    return listing.favorite === true;
+}
+
+export function getFavoriteCount(listings: Listing[]): number {
+    return listings.filter((listing) => listing.favorite === true).length;
+}
+
+export async function getChecklists(): Promise<Checklist[]> {
+    try {
+        const result = await invoke<Checklist[]>("get_checklists");
+        return result;
+    } catch (error) {
+        console.error("Failed to get checklists:", error);
+        throw new Error(`Failed to get checklists: ${error}`);
+    }
+}
+
+export async function addChecklist(
+    checklist: Omit<Checklist, "id" | "created_at" | "updated_at">
+): Promise<number> {
+    try {
+        const result = await invoke<number>("add_checklist", { checklist });
+        return result;
+    } catch (error) {
+        console.error("Failed to add checklist:", error);
+        throw new Error(`Failed to add checklist: ${error}`);
+    }
+}
+
+export async function updateChecklist(
+    id: number,
+    taskName: string,
+    isChecked: boolean,
+    documentReferences?: string,
+    reminderDate?: string
+): Promise<void> {
+    try {
+        await invoke("update_checklist", {
+            id,
+            taskName,
+            isChecked,
+            documentReferences,
+            reminderDate,
+        });
+    } catch (error) {
+        console.error("Failed to update checklist:", error);
+        throw new Error(`Failed to update checklist: ${error}`);
+    }
+}
+
+export async function deleteChecklist(id: number): Promise<void> {
+    try {
+        await invoke("delete_checklist", { id });
+    } catch (error) {
+        console.error("Failed to delete checklist:", error);
+        throw new Error(`Failed to delete checklist: ${error}`);
+    }
+}
+
+export async function toggleChecklistCompletion(id: number): Promise<boolean> {
+    try {
+        const result = await invoke<boolean>("toggle_checklist_completion", {
+            id,
+        });
+        return result;
+    } catch (error) {
+        console.error("Failed to toggle checklist completion:", error);
+        throw new Error(`Failed to toggle checklist completion: ${error}`);
     }
 }
