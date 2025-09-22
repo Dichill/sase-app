@@ -15,9 +15,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Pencil, Save, X } from "lucide-react";
-import { ca } from "zod/v4/locales";
 import { invoke } from "@tauri-apps/api/core";
-import { get } from "http";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { AlertCircleIcon } from "lucide-react";
 
 interface UserProfile {
   name: string;
@@ -94,7 +94,10 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
     // Validation
     if (!user.name.trim() || !user.email.trim()) {
-      alert("Name and Email are required.");
+      <Alert variant="destructive">
+        <AlertCircleIcon />
+        <AlertTitle>Name and Email are required.</AlertTitle>
+      </Alert>;
       return;
     }
 
@@ -106,7 +109,11 @@ const PersonalInfo: React.FC<ProfileProps> = ({ user: initialUser }) => {
       console.log("Profile UPDATE successful.");
     } catch (error) {
       console.error("Failed to update profile:", error);
-      alert("Failed to save profile. Please try again.");
+      <Alert variant="destructive">
+        <AlertCircleIcon />
+        <AlertTitle>Failed to save profile.</AlertTitle>
+        <AlertDescription>Please try again.</AlertDescription>
+      </Alert>;
     }
   };
 

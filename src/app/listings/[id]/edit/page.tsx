@@ -23,8 +23,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CheckCircle2Icon } from "lucide-react";
 
 const formSchema = z.object({
   address: z
@@ -111,7 +113,10 @@ const EditListing = () => {
     console.log("Updating listing:", listingId, values);
     // TODO: Implement actual update logic here; update listing in db
     // For now, just log the values and navigate back
-    alert("Listing updated successfully!");
+    <Alert>
+      <CheckCircle2Icon />
+      <AlertTitle>Listing updated successfully!</AlertTitle>
+    </Alert>;
     router.push(`/listings/${listingId}`);
   };
 

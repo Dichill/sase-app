@@ -8,7 +8,7 @@ import {
 } from "../ui/description-list";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Plus, Save, X, MoreVertical } from "lucide-react";
+import { Plus, Save, X, MoreVertical, AlertCircleIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { get } from "http";
 import { invoke } from "@tauri-apps/api/core";
+import { Alert, AlertTitle } from "../ui/alert";
 
 interface AdditionalInfoItem {
   id: string;
@@ -42,7 +43,7 @@ const AdditionalInfo: React.FC = () => {
   // TEST: READ operation; get additional info from db
   useEffect(() => {
     // console.log("DATABASE READ: Fetching additional info on component mount.");
-    getAdditionalInfo();
+    void getAdditionalInfo();
   }, []);
 
   const getAdditionalInfo = async () => {
@@ -52,7 +53,7 @@ const AdditionalInfo: React.FC = () => {
     } catch (error) {
       console.error("Failed to fetch additional info:", error);
     }
-  }
+  };
 
   const updateItem = (id: string, updates: Partial<AdditionalInfoItem>) => {
     setItems((prev) =>
@@ -84,20 +85,26 @@ const AdditionalInfo: React.FC = () => {
   const saveItem = async (id: string) => {
     const item = items.find((i) => i.id === id);
     if (!item || !item.label.trim() || !item.value.trim()) {
-      alert("Both Label and Value fields are required.");
+      <Alert variant="destructive">
+        <AlertCircleIcon />
+        <AlertTitle>Both Label and Value fields are required.</AlertTitle>
+      </Alert>;
       return;
     }
 
     const numId = Number(id);
 
     try {
-      const updated: boolean = await invoke ("set_additional_info", { id: numId, info: item, });
+      const updated: boolean = await invoke("set_additional_info", {
+        id: numId,
+        info: item,
+      });
       if (!updated) {
-        await invoke("set_additional_info", { info: item, });
+        await invoke("set_additional_info", { info: item });
       }
       updateItem(id, { isEditing: false, isNew: false });
     } catch (error) {
-      await invoke("add_additional_info", { info: item, });
+      await invoke("add_additional_info", { info: item });
       updateItem(id, { isEditing: false, isNew: false });
     }
   };

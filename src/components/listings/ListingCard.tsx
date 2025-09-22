@@ -7,7 +7,6 @@ import { useState } from "react";
 interface ListingCardProps {
   id: string;
   address: string;
-  city: string;
   phoneNumber: string;
   email: string;
   bedrooms: number;
@@ -19,7 +18,6 @@ const ListingCard: React.FC<ListingCardProps> = ({
   id,
   address,
   phoneNumber,
-  city,
   email,
   bedrooms,
   bathrooms,
@@ -81,7 +79,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
 
   return (
     <div
-      className="max-w-xs bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+      className="w-full bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer"
       onClick={handleClick}
     >
       <div className="flex items-start justify-between">

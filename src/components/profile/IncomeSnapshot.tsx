@@ -16,7 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Save, X, MoreVertical, Pencil } from "lucide-react";
+import {
+  Plus,
+  Save,
+  X,
+  MoreVertical,
+  Pencil,
+  AlertCircleIcon,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +35,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { get } from "http";
 import { set } from "zod";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 interface IncomeSource {
   id: string;
@@ -76,7 +84,7 @@ const IncomeSnapshot: React.FC = () => {
     } catch (error) {
       console.error("Failed to fetch income sources:", error);
     }
-  }
+  };
 
   const getMonthlyIncome = async () => {
     try {
@@ -85,7 +93,7 @@ const IncomeSnapshot: React.FC = () => {
     } catch (error) {
       console.error("Failed to fetch monthly income:", error);
     }
-  }
+  };
 
   const handleChange = (
     id: string,
@@ -105,7 +113,7 @@ const IncomeSnapshot: React.FC = () => {
   // TEST: DELETE operation for individual income source in db
   const deleteIncomeSource = async (id: string) => {
     await invoke("delete_income_source", { id: parseInt(id, 10) });
-  }
+  };
 
   const saveAllIncomeSources = async (data: IncomeSource[]) => {
     console.log("Saving income source data", data);
@@ -125,7 +133,13 @@ const IncomeSnapshot: React.FC = () => {
   const createIncomeSource = async (id: string) => {
     const source = incomeSources.find((s) => s.id === id);
     if (!source || !source.employerName.trim() || !source.jobTitle.trim()) {
-      alert("Employer Name and Job Title are required.");
+      <Alert variant="destructive">
+        <AlertCircleIcon />
+        <AlertTitle>Unable to add income source.</AlertTitle>
+        <AlertDescription>
+          Employer Name and Job Title are required.
+        </AlertDescription>
+      </Alert>;
       return;
     }
 
@@ -141,7 +155,11 @@ const IncomeSnapshot: React.FC = () => {
 
       updateIncomeSource(id, { isEditing: false, isNew: false });
     } catch (error) {
-      alert(`Failed to save income source. Please try again.`);
+      <Alert variant="destructive">
+        <AlertCircleIcon />
+        <AlertTitle>Failed to save income source.</AlertTitle>
+        <AlertDescription>Please try again.</AlertDescription>
+      </Alert>;
     }
   };
 
@@ -151,7 +169,11 @@ const IncomeSnapshot: React.FC = () => {
       await invoke("set_monthly_income", { income: monthlyIncome });
       setIsEditingIncome(false);
     } catch (error) {
-      alert("Failed to save monthly income. Please try again.");
+      <Alert variant="destructive">
+        <AlertCircleIcon />
+        <AlertTitle>Failed to save monthly income.</AlertTitle>
+        <AlertDescription>Please try again.</AlertDescription>
+      </Alert>;
     }
   };
 
