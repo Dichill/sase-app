@@ -328,7 +328,7 @@ struct Document {
 #[derive(Serialize, Deserialize)]
 struct IncomeSource {
   id: Option<i64>,
-  profile_id: Option<i64>,
+  // profile_id: Option<i64>,
   source: String,
   employer_name: String,
   job_title: String,

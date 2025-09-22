@@ -49,7 +49,7 @@ pub async fn get_income_sources() -> Result<Vec<IncomeSource>, String> {
   for row in rows {
     income_source.push(IncomeSource {
       id: row.try_get("id").unwrap_or_default(),
-      profile_id: row.try_get("profile_id").unwrap_or_default(),
+      // profile_id: row.try_get("profile_id").unwrap_or_default(),
       source: row.try_get("source").unwrap_or_default(),
       employer_name: row.try_get("employer_name").unwrap_or_default(),
       job_title: row.try_get("job_title").unwrap_or_default(),

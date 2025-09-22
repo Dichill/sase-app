@@ -80,21 +80,13 @@ const IncomeSnapshot: React.FC = () => {
   const getIncomeSources = async () => {
     try {
       const sources: IncomeSource[] = await invoke("get_income_sources");
+      console.log("Fetched income sources:", sources);
       setIncomeSources(sources);
     } catch (error) {
       console.error("Failed to fetch income sources:", error);
     }
   };
 
-  // const getMonthlyIncome = async () => {
-  //   try {
-  //     const income: number = await invoke("get_monthly_income");
-  //     console.log("Fetched monthly income:", income);
-  //     setMonthlyIncome(income);
-  //   } catch (error) {
-  //     console.error("Failed to fetch monthly income:", error);
-  //   }
-  // }
   const getMonthlyIncome = async (profileId: number) => {
   try {
     const income: number | null = await invoke("get_monthly_income", { profileId });
