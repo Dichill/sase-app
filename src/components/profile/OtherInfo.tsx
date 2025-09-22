@@ -95,18 +95,17 @@ const AdditionalInfo: React.FC = () => {
     const numId = Number(id);
 
     try {
-      const updated: boolean = await invoke("set_additional_info", {
-        id: numId,
-        info: item,
-      });
-      if (!updated) {
-        await invoke("set_additional_info", { info: item });
+    await invoke("set_additional_info", {
+      id: isNaN(numId) ? null : numId,
+      info: {
+        title: item.label.trim(),
+        description: item.value.trim(),
       }
-      updateItem(id, { isEditing: false, isNew: false });
-    } catch (error) {
-      await invoke("add_additional_info", { info: item });
-      updateItem(id, { isEditing: false, isNew: false });
-    }
+    });
+    updateItem(id, { isEditing: false, isNew: false });
+  } catch (error) {
+    console.error("Failed to save item:", error);
+  }
   };
 
   const editItem = (id: string) => {

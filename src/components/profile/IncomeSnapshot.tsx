@@ -66,7 +66,7 @@ const IncomeSnapshot: React.FC = () => {
 
   useEffect(() => {
     getIncomeSources();
-    getMonthlyIncome();
+    getMonthlyIncome(1);
   }, []);
 
   const updateIncomeSource = (id: string, updates: Partial<IncomeSource>) => {
@@ -80,20 +80,24 @@ const IncomeSnapshot: React.FC = () => {
   const getIncomeSources = async () => {
     try {
       const sources: IncomeSource[] = await invoke("get_income_sources");
+      console.log("Fetched income sources:", sources);
       setIncomeSources(sources);
     } catch (error) {
       console.error("Failed to fetch income sources:", error);
     }
   };
 
-  const getMonthlyIncome = async () => {
-    try {
-      const income: number = await invoke("get_monthly_income");
-      setMonthlyIncome(income);
-    } catch (error) {
-      console.error("Failed to fetch monthly income:", error);
-    }
-  };
+  const getMonthlyIncome = async (profileId: number) => {
+  try {
+    const income: number | null = await invoke("get_monthly_income", { profileId });
+    console.log("Fetched monthly income:", income);
+
+    // if you want to store 0 when it's null:
+    setMonthlyIncome(income ?? 0);
+  } catch (error) {
+    console.error("Failed to fetch monthly income:", error);
+  }
+};
 
   const handleChange = (
     id: string,
@@ -163,7 +167,7 @@ const IncomeSnapshot: React.FC = () => {
     }
   };
 
-  // TEST: UPDATE operation for monthly income in db
+  // FIXED: UPDATE operation for monthly income in db
   const saveMonthlyIncome = async () => {
     try {
       await invoke("set_monthly_income", { income: monthlyIncome });

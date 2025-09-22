@@ -119,6 +119,7 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
       phone TEXT,
       email TEXT,
       address TEXT,
+      monthly_income INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -146,17 +147,17 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
   .await?;
 
   // Create Monthly Income table
-  sqlx::query(
-    r#"
-    CREATE TABLE IF NOT EXISTS monthly_income (
-      profile_id INTEGER PRIMARY KEY,
-      monthly_income INTEGER,
-      FOREIGN KEY(profile_id) REFERENCES profile(id)
-    )
-    "#,
-  )
-  .execute(pool)
-  .await?;
+  // sqlx::query(
+  //   r#"
+  //   CREATE TABLE IF NOT EXISTS monthly_income (
+  //     profile_id INTEGER PRIMARY KEY,
+  //     monthly_income INTEGER,
+  //     FOREIGN KEY(profile_id) REFERENCES profile(id)
+  //   )
+  //   "#,
+  // )
+  // .execute(pool)
+  // .await?;
 
   // Create Documents table
   sqlx::query(
@@ -196,11 +197,21 @@ async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
   sqlx::query(
     r#"
     CREATE TABLE IF NOT EXISTS additional_info (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL,
-      icon TEXT NOT NULL
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      label TEXT NOT NULL,
+      value TEXT NOT NULL,
+      icon TEXT 
     )
+    "#,
+  )
+  .execute(pool)
+  .await?;
+
+  // Insert a default profile if none exists
+  sqlx::query(
+    r#"
+    INSERT OR IGNORE INTO profile (id, fullname, date_of_birth, gender, phone, email, address, monthly_income)
+    VALUES (1, '', '', '', '', '', '', 0)
     "#,
   )
   .execute(pool)
@@ -317,7 +328,7 @@ struct Document {
 #[derive(Serialize, Deserialize)]
 struct IncomeSource {
   id: Option<i64>,
-  profile_id: Option<i64>,
+  // profile_id: Option<i64>,
   source: String,
   employer_name: String,
   job_title: String,
@@ -325,11 +336,11 @@ struct IncomeSource {
   employer_contact: String,
 }
 
-#[derive(Serialize, Deserialize)]
-struct MonthlyIncome {
-  profile_id: Option<i64>,
-  monthly_income: f64,
-}
+// #[derive(Serialize, Deserialize)]
+// struct MonthlyIncome {
+//   profile_id: Option<i64>,
+//   monthly_income: f64,
+// }
 
 #[derive(Serialize, Deserialize)]
 struct Checklist {
@@ -345,9 +356,9 @@ struct Checklist {
 #[derive(Serialize, Deserialize)]
 struct AdditionalInfoItem {
   id: String,
-  title: String,
-  description: String,
-  icon: String,
+  label: String,
+  value: String,
+  icon: Option<String>,
 }
 
 /// Initialize database with user password
