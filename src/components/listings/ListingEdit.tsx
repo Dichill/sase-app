@@ -1,11 +1,26 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-/* eslint-disable @typescript-eslint/no-confusing-void-expression */
 "use client";
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+
+import { useForm, type SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -20,10 +35,45 @@ import {
     updateListing,
     getDocuments,
     type Document,
-    type Listing,
 } from "@/utils/database";
 import { ArrowLeft, Save } from "lucide-react";
 import { useDatabaseContextSafe } from "@/components/DatabaseInitializer";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+
+const formSchema = z.object({
+    address: z
+        .string()
+        .min(2, "Address must be at least 2 characters")
+        .regex(
+            /^.+,\s*.+,\s*[A-Za-z]{2},?\s*\d{5}(-\d{4})?$/,
+            "Address must be in format: Street, City, State, Zip (e.g., 123 Main St, San Francisco, CA, 94103)"
+        ),
+    bedrooms: z.number().min(0, "Bedrooms must be 0 or greater"),
+    bathrooms: z.number().min(0, "Bathrooms must be 0 or greater"),
+    source_link: z.string().min(1, "Source link is required"),
+    price_rent: z.number().min(0, "Price must be 0 or greater"),
+    contact_email: z.string().optional(),
+    contact_phone: z.string().optional(),
+    contact_other: z.string().optional(),
+    housing_type: z.string().optional(),
+    lease_type: z.string().optional(),
+    square_footage: z.number().min(0).optional(),
+    upfront_fees: z.string().optional(),
+    layout_description: z.string().optional(),
+    utilities: z.string().optional(),
+    credit_score_min: z.number().min(300).max(850).optional(),
+    minimum_income: z.number().min(0).optional(),
+    references_required: z.boolean().optional(),
+    reference_document_ids: z.array(z.number()).optional(),
+    amenities: z.string().optional(),
+    pet_policy: z.string().optional(),
+    furnishing: z.string().optional(),
+    notes: z.string().optional(),
+    favorite: z.boolean().optional(),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 interface ListingEditProps {
     listingId: number;
@@ -38,30 +88,17 @@ const ListingEdit: React.FC<ListingEditProps> = ({ listingId }) => {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [selectedDocuments, setSelectedDocuments] = useState<number[]>([]);
 
-    // Form state
-    const [formData, setFormData] = useState({
-        address: "",
-        bedrooms: 0,
-        bathrooms: 0,
-        source_link: "",
-        price_rent: 0,
-        contact_email: "",
-        contact_phone: "",
-        contact_other: "",
-        housing_type: "",
-        lease_type: "",
-        square_footage: 0,
-        upfront_fees: "",
-        layout_description: "",
-        utilities: "",
-        credit_score_min: 0,
-        minimum_income: 0,
-        references_required: false,
-        amenities: "",
-        pet_policy: "",
-        furnishing: "",
-        notes: "",
-        favorite: false,
+    const form = useForm<FormData>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            address: "",
+            bedrooms: 0,
+            bathrooms: 0,
+            source_link: "",
+            price_rent: 0,
+            favorite: false,
+            reference_document_ids: [],
+        },
     });
 
     useEffect(() => {
@@ -76,8 +113,7 @@ const ListingEdit: React.FC<ListingEditProps> = ({ listingId }) => {
             try {
                 const listing = await getListing(listingId);
 
-                // Populate form with existing data
-                setFormData({
+                form.reset({
                     address: listing.address,
                     bedrooms: listing.bedrooms ?? 0,
                     bathrooms: listing.bathrooms ?? 0,
@@ -100,6 +136,8 @@ const ListingEdit: React.FC<ListingEditProps> = ({ listingId }) => {
                     furnishing: listing.furnishing ?? "",
                     notes: listing.notes ?? "",
                     favorite: listing.favorite ?? false,
+                    reference_document_ids:
+                        listing.reference_document_ids ?? [],
                 });
 
                 setSelectedDocuments(listing.reference_document_ids ?? []);
@@ -132,46 +170,87 @@ const ListingEdit: React.FC<ListingEditProps> = ({ listingId }) => {
             }
         };
 
-        void fetchListing();
-        void fetchDocuments();
-    }, [listingId, isDatabaseInitialized]);
+        fetchListing().catch(console.error);
+        fetchDocuments().catch(console.error);
+    }, [listingId, isDatabaseInitialized, form]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleDocumentSelection = (documentId: number, checked: boolean) => {
+        setSelectedDocuments((prev) => {
+            const newSelection = checked
+                ? [...prev, documentId]
+                : prev.filter((id) => id !== documentId);
+
+            form.setValue("reference_document_ids", newSelection);
+            return newSelection;
+        });
+    };
+
+    const onSubmit: SubmitHandler<FormData> = async (values) => {
         setIsSubmitting(true);
 
         try {
-            await updateListing(
-                listingId,
-                formData.address,
-                formData.contact_email || undefined,
-                formData.contact_phone || undefined,
-                formData.contact_other || undefined,
-                formData.source_link,
-                formData.price_rent,
-                formData.housing_type || undefined,
-                formData.lease_type as "month-to-month" | "annual" | undefined,
-                formData.upfront_fees
-                    ? parseFloat(formData.upfront_fees)
+            const listingData = {
+                address: values.address,
+                source_link: values.source_link,
+                price_rent: values.price_rent,
+                contact_email: values.contact_email ?? undefined,
+                contact_phone: values.contact_phone ?? undefined,
+                contact_other: values.contact_other ?? undefined,
+                housing_type: values.housing_type ?? undefined,
+                lease_type: values.lease_type as
+                    | "month-to-month"
+                    | "annual"
+                    | undefined,
+                upfront_fees: values.upfront_fees
+                    ? parseFloat(values.upfront_fees)
                     : undefined,
-                formData.utilities || undefined,
-                formData.credit_score_min || undefined,
-                formData.minimum_income || undefined,
-                formData.references_required || undefined,
-                formData.bedrooms,
-                formData.bathrooms,
-                formData.square_footage || undefined,
-                formData.layout_description || undefined,
-                formData.amenities || undefined,
-                formData.pet_policy || undefined,
-                formData.furnishing as
+                utilities: values.utilities ?? undefined,
+                credit_score_min: values.credit_score_min ?? undefined,
+                minimum_income: values.minimum_income ?? undefined,
+                references_required: values.references_required ?? undefined,
+                bedrooms: values.bedrooms,
+                bathrooms: values.bathrooms,
+                square_footage: values.square_footage,
+                layout_description: values.layout_description,
+                amenities: values.amenities ?? undefined,
+                pet_policy: values.pet_policy ?? undefined,
+                furnishing: values.furnishing as
                     | "furnished"
                     | "unfurnished"
                     | "semi-furnished"
                     | undefined,
-                formData.notes || undefined,
-                formData.favorite || undefined,
-                selectedDocuments.length > 0 ? selectedDocuments : undefined
+                notes: values.notes ?? undefined,
+                favorite: values.favorite ?? false,
+                reference_document_ids: values.reference_document_ids ?? [],
+            };
+
+            await updateListing(
+                listingId,
+                listingData.address,
+                listingData.contact_email,
+                listingData.contact_phone,
+                listingData.contact_other,
+                listingData.source_link,
+                listingData.price_rent,
+                listingData.housing_type,
+                listingData.lease_type,
+                listingData.upfront_fees,
+                listingData.utilities,
+                listingData.credit_score_min,
+                listingData.minimum_income,
+                listingData.references_required,
+                listingData.bedrooms,
+                listingData.bathrooms,
+                listingData.square_footage,
+                listingData.layout_description,
+                listingData.amenities,
+                listingData.pet_policy,
+                listingData.furnishing,
+                listingData.notes,
+                listingData.favorite,
+                listingData.reference_document_ids.length > 0
+                    ? listingData.reference_document_ids
+                    : undefined
             );
 
             console.log("Listing updated successfully!");
@@ -186,24 +265,6 @@ const ListingEdit: React.FC<ListingEditProps> = ({ listingId }) => {
         } finally {
             setIsSubmitting(false);
         }
-    };
-
-    const handleInputChange = (
-        field: string,
-        value: string | number | boolean
-    ) => {
-        setFormData((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
-    };
-
-    const handleDocumentToggle = (documentId: number) => {
-        setSelectedDocuments((prev) => {
-            return prev.includes(documentId)
-                ? prev.filter((id) => id !== documentId)
-                : [...prev, documentId];
-        });
     };
 
     if (isLoading || !isDatabaseInitialized) {
@@ -227,7 +288,9 @@ const ListingEdit: React.FC<ListingEditProps> = ({ listingId }) => {
                     <h1 className="text-2xl font-bold mb-4">Error</h1>
                     <p className="text-muted-foreground mb-4">{error}</p>
                     <Button
-                        onClick={() => router.push("/listings")}
+                        onClick={() => {
+                            router.push("/listings");
+                        }}
                         variant="outline"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -239,461 +302,731 @@ const ListingEdit: React.FC<ListingEditProps> = ({ listingId }) => {
     }
 
     return (
-        <div className="h-full overflow-y-auto">
-            <div className="container mx-auto p-12">
-                <div className="flex items-center gap-4 mb-6">
+        <div className="w-full h-full">
+            <div
+                className="container mx-auto w-full px-10"
+                style={{ marginTop: "48px", marginBottom: "64px" }}
+            >
+                <div className="flex items-center gap-4 mb-8">
                     <Button
-                        onClick={() => router.push(`/listings?id=${listingId}`)}
+                        onClick={() => {
+                            router.push(`/listings?id=${listingId}`);
+                        }}
                         variant="outline"
                         size="icon"
                     >
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
-                    <h1 className="text-3xl font-bold">Edit Listing</h1>
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">
+                            Edit Listing
+                        </h1>
+                        <p className="text-muted-foreground mt-2">
+                            Update the listing information
+                        </p>
+                    </div>
                 </div>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Basic Information */}
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold">
-                            Basic Information
-                        </h2>
-
-                        <div>
-                            <Label htmlFor="address">Address *</Label>
-                            <Input
-                                id="address"
-                                value={formData.address}
-                                onChange={(e) =>
-                                    handleInputChange("address", e.target.value)
-                                }
-                                placeholder="123 Main St, San Francisco, CA, 94103"
-                                required
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="bedrooms">Bedrooms *</Label>
-                                <Input
-                                    id="bedrooms"
-                                    type="number"
-                                    min="0"
-                                    value={formData.bedrooms}
-                                    onChange={(e) =>
-                                        handleInputChange(
-                                            "bedrooms",
-                                            parseInt(e.target.value) || 0
-                                        )
-                                    }
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="bathrooms">Bathrooms *</Label>
-                                <Input
-                                    id="bathrooms"
-                                    type="number"
-                                    min="0"
-                                    step="0.5"
-                                    value={formData.bathrooms}
-                                    onChange={(e) =>
-                                        handleInputChange(
-                                            "bathrooms",
-                                            parseFloat(e.target.value) || 0
-                                        )
-                                    }
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="price_rent">
-                                    Monthly Rent ($) *
-                                </Label>
-                                <Input
-                                    id="price_rent"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={formData.price_rent}
-                                    onChange={(e) =>
-                                        handleInputChange(
-                                            "price_rent",
-                                            parseFloat(e.target.value) || 0
-                                        )
-                                    }
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="square_footage">
-                                    Square Footage
-                                </Label>
-                                <Input
-                                    id="square_footage"
-                                    type="number"
-                                    min="0"
-                                    value={formData.square_footage || ""}
-                                    onChange={(e) =>
-                                        handleInputChange(
-                                            "square_footage",
-                                            parseInt(e.target.value) || 0
-                                        )
-                                    }
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <Label htmlFor="source_link">Source Link *</Label>
-                            <Input
-                                id="source_link"
-                                value={formData.source_link}
-                                onChange={(e) =>
-                                    handleInputChange(
-                                        "source_link",
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="https://example.com/listing"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    {/* Contact Information */}
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold">
-                            Contact Information
-                        </h2>
-
-                        <div>
-                            <Label htmlFor="contact_email">Contact Email</Label>
-                            <Input
-                                id="contact_email"
-                                type="email"
-                                value={formData.contact_email}
-                                onChange={(e) =>
-                                    handleInputChange(
-                                        "contact_email",
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="landlord@example.com"
-                            />
-                        </div>
-
-                        <div>
-                            <Label htmlFor="contact_phone">Contact Phone</Label>
-                            <Input
-                                id="contact_phone"
-                                type="tel"
-                                value={formData.contact_phone}
-                                onChange={(e) =>
-                                    handleInputChange(
-                                        "contact_phone",
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="(555) 123-4567"
-                            />
-                        </div>
-
-                        <div>
-                            <Label htmlFor="contact_other">
-                                Other Contact Info
-                            </Label>
-                            <Input
-                                id="contact_other"
-                                value={formData.contact_other}
-                                onChange={(e) =>
-                                    handleInputChange(
-                                        "contact_other",
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Text preferred, WhatsApp, etc."
-                            />
-                        </div>
-                    </div>
-
-                    {/* Property Details */}
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold">
-                            Property Details
-                        </h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="housing_type">
-                                    Housing Type
-                                </Label>
-                                <Select
-                                    value={formData.housing_type}
-                                    onValueChange={(value) =>
-                                        handleInputChange("housing_type", value)
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select housing type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="apartment">
-                                            Apartment
-                                        </SelectItem>
-                                        <SelectItem value="house">
-                                            House
-                                        </SelectItem>
-                                        <SelectItem value="condo">
-                                            Condo
-                                        </SelectItem>
-                                        <SelectItem value="townhouse">
-                                            Townhouse
-                                        </SelectItem>
-                                        <SelectItem value="studio">
-                                            Studio
-                                        </SelectItem>
-                                        <SelectItem value="other">
-                                            Other
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div>
-                                <Label htmlFor="lease_type">Lease Type</Label>
-                                <Select
-                                    value={formData.lease_type}
-                                    onValueChange={(value) =>
-                                        handleInputChange("lease_type", value)
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select lease type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="month-to-month">
-                                            Month-to-Month
-                                        </SelectItem>
-                                        <SelectItem value="annual">
-                                            Annual
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <Label htmlFor="layout_description">
-                                Layout Description
-                            </Label>
-                            <Textarea
-                                id="layout_description"
-                                value={formData.layout_description}
-                                onChange={(e) =>
-                                    handleInputChange(
-                                        "layout_description",
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Describe the layout, features, and amenities of the property..."
-                                className="min-h-[100px]"
-                            />
-                        </div>
-
-                        <div>
-                            <Label htmlFor="amenities">Amenities</Label>
-                            <Textarea
-                                id="amenities"
-                                value={formData.amenities}
-                                onChange={(e) =>
-                                    handleInputChange(
-                                        "amenities",
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="In-unit laundry, Dishwasher, Parking, Gym, etc."
-                            />
-                        </div>
-
-                        <div>
-                            <Label htmlFor="pet_policy">Pet Policy</Label>
-                            <Textarea
-                                id="pet_policy"
-                                value={formData.pet_policy}
-                                onChange={(e) =>
-                                    handleInputChange(
-                                        "pet_policy",
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Cats allowed with deposit, No pets, etc."
-                            />
-                        </div>
-                    </div>
-
-                    {/* Requirements */}
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold">Requirements</h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="credit_score_min">
-                                    Minimum Credit Score
-                                </Label>
-                                <Input
-                                    id="credit_score_min"
-                                    type="number"
-                                    min="300"
-                                    max="850"
-                                    value={formData.credit_score_min || ""}
-                                    onChange={(e) =>
-                                        handleInputChange(
-                                            "credit_score_min",
-                                            parseInt(e.target.value) || 0
-                                        )
-                                    }
-                                />
-                            </div>
-
-                            <div>
-                                <Label htmlFor="minimum_income">
-                                    Minimum Monthly Income ($)
-                                </Label>
-                                <Input
-                                    id="minimum_income"
-                                    type="number"
-                                    min="0"
-                                    value={formData.minimum_income || ""}
-                                    onChange={(e) =>
-                                        handleInputChange(
-                                            "minimum_income",
-                                            parseInt(e.target.value) || 0
-                                        )
-                                    }
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="references_required"
-                                checked={formData.references_required}
-                                onCheckedChange={(checked) =>
-                                    handleInputChange(
-                                        "references_required",
-                                        checked
-                                    )
-                                }
-                            />
-                            <Label htmlFor="references_required">
-                                References Required
-                            </Label>
-                        </div>
-
-                        {formData.references_required && (
-                            <div className="space-y-4">
-                                <Label>Reference Documents</Label>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {documents.map((document) => (
-                                        <div
-                                            key={document.id}
-                                            className="flex items-center space-x-2"
-                                        >
-                                            <Checkbox
-                                                id={`doc-${document.id}`}
-                                                checked={selectedDocuments.includes(
-                                                    document.id!
+                <Form {...form}>
+                    <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className="space-y-6 pb-8"
+                    >
+                        <Accordion type="multiple">
+                            <AccordionItem value="item-1" className="py-2">
+                                <AccordionTrigger className="cursor-pointer">
+                                    <div className="py-2">
+                                        <h3 className="text-lg font-semibold">
+                                            Basic Information
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Basic information of the listing
+                                        </p>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-4 px-6 my-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="source_link"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Source Link *
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="https://example.com"
+                                                            {...field}
+                                                            required
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="address"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Address *
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="123 Main St, San Francisco, CA, 94103"
+                                                            {...field}
+                                                            required
+                                                        />
+                                                    </FormControl>
+                                                    <FormDescription>
+                                                        Format: Street, City,
+                                                        State, Zip Code
+                                                    </FormDescription>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <div className="flex gap-4 w-full">
+                                            <FormField
+                                                control={form.control}
+                                                name="bedrooms"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Bedrooms *
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                inputMode="numeric"
+                                                                placeholder="0"
+                                                                {...field}
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    field.onChange(
+                                                                        parseFloat(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        ) || 0
+                                                                    );
+                                                                }}
+                                                                required
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
                                                 )}
-                                                onCheckedChange={() =>
-                                                    handleDocumentToggle(
-                                                        document.id!
-                                                    )
-                                                }
                                             />
-                                            <Label
-                                                htmlFor={`doc-${document.id}`}
-                                                className="text-sm font-medium leading-none"
-                                            >
-                                                {document.name}
-                                            </Label>
+                                            <FormField
+                                                control={form.control}
+                                                name="bathrooms"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Bathrooms *
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                inputMode="numeric"
+                                                                placeholder="0"
+                                                                {...field}
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    field.onChange(
+                                                                        parseFloat(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        ) || 0
+                                                                    );
+                                                                }}
+                                                                required
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="price_rent"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Price *
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                inputMode="numeric"
+                                                                placeholder="0"
+                                                                {...field}
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    field.onChange(
+                                                                        parseFloat(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        ) || 0
+                                                                    );
+                                                                }}
+                                                                required
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
                                         </div>
-                                    ))}
-                                </div>
-                                {documents.length === 0 && (
-                                    <p className="text-sm text-muted-foreground">
-                                        No documents available. Add documents in
-                                        the Documents section first.
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
 
-                    {/* Additional Notes */}
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold">
-                            Additional Notes
-                        </h2>
+                            <AccordionItem value="item-2" className="py-2">
+                                <AccordionTrigger className="cursor-pointer">
+                                    <div className="py-2">
+                                        <h3 className="text-lg font-semibold">
+                                            Contact Information
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            How to reach the landlord
+                                        </p>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-4 px-6 my-4">
+                                        <div className="flex gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="contact_email"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Email
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                placeholder="email@example.com"
+                                                                {...field}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="contact_phone"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Phone
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                placeholder="123-456-7890"
+                                                                {...field}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="contact_other"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Other Contact Methods
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="Instagram, Facebook, etc."
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
 
-                        <div>
-                            <Label htmlFor="notes">Notes</Label>
-                            <Textarea
-                                id="notes"
-                                value={formData.notes}
-                                onChange={(e) =>
-                                    handleInputChange("notes", e.target.value)
-                                }
-                                placeholder="Any additional notes or comments about this listing..."
-                                className="min-h-[100px]"
-                            />
-                        </div>
+                            <AccordionItem value="item-3" className="py-2">
+                                <AccordionTrigger className="cursor-pointer">
+                                    <div className="py-2">
+                                        <h3 className="text-lg font-semibold">
+                                            Listing Details
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Additional details about the listing
+                                        </p>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-4 px-6 my-4">
+                                        <div className="flex gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="housing_type"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Housing Type
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                placeholder="Apartment, House, etc."
+                                                                {...field}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="lease_type"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Lease Type
+                                                        </FormLabel>
+                                                        <Select
+                                                            onValueChange={
+                                                                field.onChange
+                                                            }
+                                                            value={field.value}
+                                                        >
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select lease type" />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="month-to-month">
+                                                                    Month-to-month
+                                                                </SelectItem>
+                                                                <SelectItem value="annual">
+                                                                    Annual
+                                                                </SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <div className="flex gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="upfront_fees"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Upfront Fees
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                placeholder="Security Deposit, Application Fee, etc."
+                                                                {...field}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="square_footage"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Square Footage
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                inputMode="numeric"
+                                                                placeholder="0"
+                                                                {...field}
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    field.onChange(
+                                                                        e.target
+                                                                            .value
+                                                                            ? parseFloat(
+                                                                                  e
+                                                                                      .target
+                                                                                      .value
+                                                                              ) ||
+                                                                                  undefined
+                                                                            : undefined
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="layout_description"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Layout Description
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Describe the layout, room arrangements, etc."
+                                                            className="h-24"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="utilities"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Utilities
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Utilities included, etc."
+                                                            className="h-24"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
 
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="favorite"
-                                checked={formData.favorite}
-                                onCheckedChange={(checked) =>
-                                    handleInputChange("favorite", checked)
-                                }
-                            />
-                            <Label htmlFor="favorite">Mark as Favorite</Label>
-                        </div>
-                    </div>
+                            <AccordionItem value="item-4" className="py-2">
+                                <AccordionTrigger className="cursor-pointer">
+                                    <div className="py-2">
+                                        <h3 className="text-lg font-semibold">
+                                            Requirements
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Tenant requirements and
+                                            qualifications
+                                        </p>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-4 px-6 my-4">
+                                        <div className="flex gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="credit_score_min"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Credit Score Minimum
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                inputMode="numeric"
+                                                                placeholder="670"
+                                                                {...field}
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    field.onChange(
+                                                                        e.target
+                                                                            .value
+                                                                            ? parseFloat(
+                                                                                  e
+                                                                                      .target
+                                                                                      .value
+                                                                              ) ||
+                                                                                  undefined
+                                                                            : undefined
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="minimum_income"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>
+                                                            Minimum Monthly
+                                                            Income
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                inputMode="numeric"
+                                                                placeholder="1000"
+                                                                {...field}
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    field.onChange(
+                                                                        e.target
+                                                                            .value
+                                                                            ? parseFloat(
+                                                                                  e
+                                                                                      .target
+                                                                                      .value
+                                                                              ) ||
+                                                                                  undefined
+                                                                            : undefined
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="references_required"
+                                            render={({ field }) => (
+                                                <FormItem className="flex gap-4">
+                                                    <FormLabel>
+                                                        References Required
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Checkbox
+                                                            checked={
+                                                                field.value
+                                                            }
+                                                            onCheckedChange={
+                                                                field.onChange
+                                                            }
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                    <div className="flex gap-4 pt-6">
+                                        {form.watch("references_required") && (
+                                            <div className="space-y-3">
+                                                <FormLabel>
+                                                    Select Reference Documents
+                                                </FormLabel>
+                                                <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+                                                    {documents.length === 0 ? (
+                                                        <p className="text-sm text-muted-foreground">
+                                                            No documents
+                                                            available. Please
+                                                            add documents first.
+                                                        </p>
+                                                    ) : (
+                                                        documents.map(
+                                                            (document) => (
+                                                                <div
+                                                                    key={
+                                                                        document.id
+                                                                    }
+                                                                    className="flex items-center space-x-2"
+                                                                >
+                                                                    <Checkbox
+                                                                        id={`doc-${document.id}`}
+                                                                        checked={selectedDocuments.includes(
+                                                                            document.id!
+                                                                        )}
+                                                                        onCheckedChange={(
+                                                                            checked
+                                                                        ) => {
+                                                                            handleDocumentSelection(
+                                                                                document.id!,
+                                                                                checked as boolean
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                    <label
+                                                                        htmlFor={`doc-${document.id}`}
+                                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                                    >
+                                                                        {
+                                                                            document.name
+                                                                        }
+                                                                        <span className="text-muted-foreground ml-2">
+                                                                            (
+                                                                            {
+                                                                                document.document_type
+                                                                            }
+                                                                            )
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            )
+                                                        )
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+
+                            <AccordionItem value="item-5" className="py-2">
+                                <AccordionTrigger className="cursor-pointer">
+                                    <div className="py-2">
+                                        <h3 className="text-lg font-semibold">
+                                            Additional Details
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Extra information about amenities,
+                                            policies, and notes
+                                        </p>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-4 px-6 my-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="amenities"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Amenities
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Pool, Gym, etc."
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="pet_policy"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Pet Policy
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Pets allowed? Any restrictions or fees?"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="furnishing"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Furnishing
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Furnished, Unfurnished, Semi-furnished"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="notes"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Additional Notes
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Additional notes"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="favorite"
+                                            render={({ field }) => (
+                                                <FormItem className="flex gap-4 items-center">
+                                                    <FormLabel>
+                                                        Mark as Favorite
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Checkbox
+                                                            checked={
+                                                                field.value
+                                                            }
+                                                            onCheckedChange={
+                                                                field.onChange
+                                                            }
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+
                         <Button
                             type="submit"
+                            className="w-full mt-10"
                             disabled={isSubmitting}
-                            className="flex items-center gap-2"
                         >
                             {isSubmitting ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    Updating...
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Updating Listing...
                                 </>
                             ) : (
                                 <>
-                                    <Save className="w-4 h-4" />
+                                    <Save className="w-4 h-4 mr-2" />
                                     Update Listing
                                 </>
                             )}
                         </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() =>
-                                router.push(`/listings?id=${listingId}`)
-                            }
-                            disabled={isSubmitting}
-                        >
-                            Cancel
-                        </Button>
-                    </div>
-                </form>
+                    </form>
+                </Form>
             </div>
         </div>
     );

@@ -51,9 +51,35 @@ export function useDatabaseContextSafe() {
 export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
     const [isDatabaseInitialized, setIsDatabaseInitialized] = useState(false);
     const [isClient, setIsClient] = useState(false);
+    const [initializationTimeout, setInitializationTimeout] =
+        useState<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         setIsClient(true);
+
+        const wasInitialized = localStorage.getItem("database_initialized");
+        if (wasInitialized) {
+            checkDatabaseStatus()
+                .then((isWorking) => {
+                    if (isWorking) {
+                        console.log(
+                            "DatabaseInitializer: Database appears to be working, marking as initialized"
+                        );
+                        setIsDatabaseInitialized(true);
+                    } else {
+                        console.log(
+                            "DatabaseInitializer: Database not working despite localStorage flag"
+                        );
+                        localStorage.removeItem("database_initialized");
+                    }
+                })
+                .catch((error: unknown) => {
+                    console.log(
+                        "DatabaseInitializer: Initial database check failed:",
+                        error
+                    );
+                });
+        }
     }, []);
 
     const initializeDatabase = async (
@@ -65,6 +91,24 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
             return;
         }
 
+        if (!force) {
+            try {
+                const status = await checkDatabaseStatus();
+                if (status) {
+                    console.log(
+                        "Database already exists and is working, marking as initialized"
+                    );
+                    setIsDatabaseInitialized(true);
+                    return;
+                }
+            } catch (error) {
+                console.log(
+                    "Database status check failed, proceeding with initialization:",
+                    error
+                );
+            }
+        }
+
         try {
             console.log(
                 "DatabaseInitializer: Initializing database for user:",
@@ -72,8 +116,9 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
                 force ? "(forced)" : ""
             );
 
-            // Reset state before attempting initialization
-            setIsDatabaseInitialized(false);
+            if (force || !isDatabaseInitialized) {
+                setIsDatabaseInitialized(false);
+            }
 
             const defaultPassword = `${user.id}_${user.email}`;
 
@@ -84,10 +129,32 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
             );
 
             if (result.success) {
-                setIsDatabaseInitialized(true);
                 console.log(
-                    "DatabaseInitializer: Database successfully initialized and state updated"
+                    "DatabaseInitializer: Initialization returned success, verifying backend is ready..."
                 );
+
+                await new Promise((resolve) => setTimeout(resolve, 100));
+
+                try {
+                    const isReady = await checkDatabaseStatus();
+                    if (isReady) {
+                        setIsDatabaseInitialized(true);
+                        console.log(
+                            "DatabaseInitializer: Database successfully initialized and verified ready"
+                        );
+                    } else {
+                        console.warn(
+                            "DatabaseInitializer: Initialization succeeded but backend not ready yet, will retry"
+                        );
+                        setIsDatabaseInitialized(false);
+                    }
+                } catch (verifyError) {
+                    console.warn(
+                        "DatabaseInitializer: Failed to verify database readiness:",
+                        verifyError
+                    );
+                    setIsDatabaseInitialized(true);
+                }
             } else {
                 console.error(
                     "DatabaseInitializer: Database initialization returned success: false"
@@ -99,25 +166,119 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
                 "DatabaseInitializer: Failed to initialize database:",
                 error
             );
-            // Reset the state to false in case of error
+
+            try {
+                const status = await checkDatabaseStatus();
+                if (status) {
+                    console.log(
+                        "Database exists despite initialization error, marking as initialized"
+                    );
+                    setIsDatabaseInitialized(true);
+                    return;
+                }
+            } catch (checkError) {
+                console.log("Database status check also failed:", checkError);
+            }
+
             setIsDatabaseInitialized(false);
         }
     };
 
     const checkDatabaseStatus = async (): Promise<boolean> => {
         try {
-            // Try to make a simple database call to verify it's working
-            const { getDatabaseInfo } = await import("@/utils/database");
-            const info = await getDatabaseInfo();
-            return info.exists && !info.error;
+            const { getListings } = await import("@/utils/database");
+            await getListings();
+            return true;
         } catch (error) {
-            console.error("Database status check failed:", error);
+            console.log(
+                "Database status check failed (this is normal during initialization):",
+                error
+            );
+            if (
+                error instanceof Error &&
+                error.message.includes("Database not initialized")
+            ) {
+                return false;
+            }
             return false;
         }
     };
 
     useEffect(() => {
         if (!isClient) return;
+
+        let isInitializing = false;
+
+        const handleUserSession = async (
+            user: { email: string; id: string },
+            reason: string
+        ) => {
+            if (isInitializing) {
+                console.log(
+                    "DatabaseInitializer: Already initializing, skipping..."
+                );
+                return;
+            }
+
+            console.log(
+                `DatabaseInitializer: ${reason}, checking database status...`
+            );
+
+            isInitializing = true;
+
+            const timeout = setTimeout(() => {
+                console.warn(
+                    "DatabaseInitializer: Initialization timeout, checking if database is working..."
+                );
+                void (async () => {
+                    try {
+                        const isWorking = await checkDatabaseStatus();
+                        if (isWorking) {
+                            console.log(
+                                "DatabaseInitializer: Database is working despite timeout, marking as initialized"
+                            );
+                            setIsDatabaseInitialized(true);
+                        } else {
+                            console.warn(
+                                "DatabaseInitializer: Database not working after timeout, forcing completion to avoid infinite loop"
+                            );
+                            setIsDatabaseInitialized(true);
+                        }
+                    } catch (error) {
+                        console.warn(
+                            "DatabaseInitializer: Timeout check failed, forcing completion:",
+                            error
+                        );
+                        setIsDatabaseInitialized(true);
+                    }
+                    localStorage.setItem("database_initialized", "true");
+                    isInitializing = false;
+                })();
+            }, 30000);
+
+            setInitializationTimeout(timeout);
+
+            try {
+                const wasDeleted = !localStorage.getItem(
+                    "database_initialized"
+                );
+
+                await initializeDatabase(user, wasDeleted);
+
+                localStorage.setItem("database_initialized", "true");
+            } catch (error) {
+                console.error(
+                    "DatabaseInitializer: Error during initialization:",
+                    error
+                );
+                setIsDatabaseInitialized(true);
+                localStorage.setItem("database_initialized", "true");
+            } finally {
+                clearTimeout(timeout);
+                setInitializationTimeout(null);
+                isInitializing = false;
+            }
+        };
 
         const checkAndInitializeDatabase = async () => {
             if (isDatabaseInitialized) return;
@@ -128,25 +289,13 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
             } = await supabase.auth.getSession();
 
             if (session?.user && session.user.email && session.user.id) {
-                console.log(
-                    "DatabaseInitializer: Found authenticated user, initializing database..."
-                );
-
-                // Check if database was recently deleted
-                const wasDeleted = !localStorage.getItem(
-                    "database_initialized"
-                );
-
-                await initializeDatabase(
+                await handleUserSession(
                     {
                         email: session.user.email,
                         id: session.user.id,
                     },
-                    wasDeleted
+                    "Found authenticated user on mount"
                 );
-
-                // Mark as initialized in localStorage
-                localStorage.setItem("database_initialized", "true");
             }
         };
 
@@ -164,38 +313,30 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
                 session.user.email &&
                 session.user.id
             ) {
-                console.log(
-                    "DatabaseInitializer: User signed in, initializing database..."
-                );
-
-                // Check if database was recently deleted
-                const wasDeleted = !localStorage.getItem(
-                    "database_initialized"
-                );
-
-                await initializeDatabase(
+                await handleUserSession(
                     {
                         email: session.user.email,
                         id: session.user.id,
                     },
-                    wasDeleted
-                ); // Force initialization if database was deleted
-
-                // Mark as initialized in localStorage
-                localStorage.setItem("database_initialized", "true");
+                    "User signed in"
+                );
             } else if (event === "SIGNED_OUT") {
                 console.log(
                     "DatabaseInitializer: User signed out, resetting database state"
                 );
                 setIsDatabaseInitialized(false);
                 localStorage.removeItem("database_initialized");
+                isInitializing = false;
             }
         });
 
         return () => {
             subscription.unsubscribe();
+            if (initializationTimeout) {
+                clearTimeout(initializationTimeout);
+            }
         };
-    }, [isClient]); // Removed isDatabaseInitialized dependency to prevent re-initialization loops
+    }, [isClient, initializationTimeout]);
 
     if (!isClient) {
         return <>{children}</>;
